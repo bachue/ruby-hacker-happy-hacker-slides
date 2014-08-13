@@ -35,49 +35,52 @@
 					<p>
 						<small>Created by <a href="http://bachue.is-programmer.com">Bachue</a> / <a href="http://twitter.com/iBachue">@iBachue</a></small>
 					</p>
+          <aside class="notes">
+            <div>本Slides从 Rails ActiveSupport 库中采集大量有意思的Hack例子并为大家讲解，主要是让大家对 Ruby 元编程的代码和效果有个初步的印象。虽然源于 Rails 却并没有照搬照抄 Rails 的实现，一方面是为了便于讲解，省去大量无意义的细节，一方面也觉得 Rails 的实现也并非完美，也不够有趣。</div>
+          </aside>
 				</section>
 
 				<section>
 					<section>
 						<h1>Elegant Inquery</h1>
-                        <aside class="notes">
-                            <div>首先，让我们从一个最简单的例子开始吧！</div>
-                        </aside>
+              <aside class="notes">
+                <div>首先，让我们从一个最简单的例子开始吧！</div>
+              </aside>
 					</section>
 					<section>
-                        <h3>Rails.env</h3>
-                        <pre><code class="ruby">
+            <h3>Rails.env</h3>
+            <pre><code class="ruby">
 Rails.env == "production"
-                        </code></pre>
-                        <aside class="notes">
-                            <div>在Rails中，有一个环境变量 Rails.env 用来表示当前Rails跑在哪种环境中，一般来说，总共有三种环境：</div>
-                            <ul>
-                                <li>Development</li>
-                                <li>Test</li>
-                                <li>Production</li>
-                            </ul>
-                            <div>当我们需要判断当前 Rails 执行在哪种环境中时，我们可以用这样的匹配方法</div>
-                        </aside>
-					</section>
-                    <section>
-                        <h3>Rails.env</h3>
-                        <pre><code class="ruby">
+            </code></pre>
+            <aside class="notes">
+              <div>在Rails中，有一个环境变量 Rails.env 用来表示当前Rails跑在哪种环境中，一般来说，总共有三种环境：</div>
+              <ul>
+                <li>Development</li>
+                <li>Test</li>
+                <li>Production</li>
+              </ul>
+              <div>当我们需要判断当前 Rails 执行在哪种环境中时，我们可以用这样的匹配方法</div>
+            </aside>
+          </section>
+          <section>
+            <h3>Rails.env</h3>
+            <pre><code class="ruby">
 Rails.env.production?
-                        </code></pre>
-                        <aside class="notes">
-                            <div>当然 Rails 程序员不喜欢这种写法，他们更倾向于这样更有 Ruby 风格的写法</div>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>How to Implement?</h3>
-                        <aside class="notes">
-                            <div>那么如何实现这种写法呢？</div>
-                            <div>当然，依次定义<code>production?</code>,<code>development?</code>, <code>test?</code>是可以的，但是有没有更加通用的办法？</div>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>method_missing</h3>
-                        <pre><code class="ruby">
+            </code></pre>
+            <aside class="notes">
+              <div>当然 Rails 程序员不喜欢这种写法，他们更倾向于这样更有 Ruby 风格的写法</div>
+            </aside>
+          </section>
+          <section>
+            <h3>How to Implement?</h3>
+            <aside class="notes">
+              <div>那么如何实现这种写法呢？</div>
+              <div>当然，依次定义<code>production?</code>,<code>development?</code>, <code>test?</code>是可以的，但是有没有更加通用的办法？</div>
+            </aside>
+          </section>
+          <section>
+            <h3>method_missing</h3>
+            <pre><code class="ruby">
 class StringInquirer &lt; String
   private def method_missing method_name, *arguments
     if method_name[-1] == '?'
@@ -87,15 +90,15 @@ class StringInquirer &lt; String
     end
   end
 end
-                        </code></pre>
-                        <aside class="notes">
-                            <div>在 Ruby 中，任何找不到的方法都会调用 method_missing 方法去解决，这个方法的默认实现总是抛出 NoMethodError 错误，当然你可以覆盖它。</div>
-                            <div>在这里，我们先继承了String类型，由于String的子类可以表现的和它的父类一模一样，因此人们不会注意到 Rails.env 其实返回了另一个类型的实例。然后在这个子类中重写 method_missing 方法，判断找不到的那个方法是否以问号结尾，如果是，将方法名中问号之前的部分取出，与自身做对比，如果不是，调用父类的默认实现，也就是抛出 NoMethodError 错误即可。</div>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>method_missing</h3>
-                        <pre><code class="ruby">
+            </code></pre>
+            <aside class="notes">
+              <div>在 Ruby 中，任何找不到的方法都会调用 method_missing 方法去解决，这个方法的默认实现总是抛出 NoMethodError 错误，当然你可以覆盖它。</div>
+              <div>在这里，我们先继承了String类型，由于String的子类可以表现的和它的父类一模一样，因此人们不会注意到 Rails.env 其实返回了另一个类型的实例。然后在这个子类中重写 method_missing 方法，判断找不到的那个方法是否以问号结尾，如果是，将方法名中问号之前的部分取出，与自身做对比，如果不是，调用父类的默认实现，也就是抛出 NoMethodError 错误即可。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>method_missing</h3>
+            <pre><code class="ruby">
 class StringInquirer &lt; String
   private def respond_to_missing? method_name, include_private = false
     method_name[-1] == '?'
@@ -103,34 +106,34 @@ class StringInquirer &lt; String
 end
 
 Rails.env.respond_to? :development? # =&gt; true
-                        </code></pre>
-                        <aside class="notes">
-                            <div>单这样实现还可能有个疏漏，Ruby 允许调用<code>respond_to?</code>方法查询一个方法名是否存在，单单只有<code>method_missing</code>的实现会使得这个查询会失败，因此，Ruby 提供了一个专门用于覆盖的方法<code>respond_to_missing?</code>，它的返回值将影响<code>respond_to?</code>的结果。在这里，我们写成任何以问号结尾的方法总是能查询成功。</div>
-                        </aside>
-                    </section>
+            </code></pre>
+            <aside class="notes">
+              <div>单这样实现还可能有个疏漏，Ruby 允许调用<code>respond_to?</code>方法查询一个方法名是否存在，单单只有<code>method_missing</code>的实现会使得这个查询会失败，因此，Ruby 提供了一个专门用于覆盖的方法<code>respond_to_missing?</code>，它的返回值将影响<code>respond_to?</code>的结果。在这里，我们写成任何以问号结尾的方法总是能查询成功。</div>
+            </aside>
+          </section>
 				</section>
 
 				<section>
 					<section>
 						<h1>Elegant Time</h1>
-                        <aside class="notes">
-                            <div>第二个例子来自于 Rails 的优雅的时间计算</div>
-                        </aside>
-					</section>
-					<section>
+            <aside class="notes">
+              <div>第二个例子来自于 Rails 的优雅的时间计算</div>
+            </aside>
+          </section>
+          <section>
 						<h3>Elegant Time</h3>
-                        <pre><code class="ruby">
-1.day.ago # => 2014-08-11 22:41:47 +0800
-1.day - 2.hours # => 22 hours
-                        </code></pre>
-                        <aside class="notes">
-                            <div>这是 Rails 中一个十分经典的例子，连 Matz 也表示这样的设计令人震惊。</div>
-                            <div><code>1.day.ago</code>返回一天前的时间，而<code>1.day</code>，<code>2.hours</code>都是可以相互做数学运算的。</div>
-                        </aside>
-					</section>
-					<section>
+            <pre><code class="ruby">
+1.day.ago # =&gt; 2014-08-11 22:41:47 +0800
+1.day - 2.hours # =&gt; 22 hours
+            </code></pre>
+            <aside class="notes">
+              <div>这是 Rails 中一个十分经典的例子，连 Matz 也表示这样的设计令人震惊。</div>
+              <div><code>1.day.ago</code>返回一天前的时间，而<code>1.day</code>，<code>2.hours</code>都是可以相互做数学运算的。</div>
+            </aside>
+          </section>
+          <section>
 						<h3>How to Implement?</h3>
-                        <pre><code class="ruby" style="max-height: inherit;">
+              <pre><code class="ruby" style="max-height: inherit;">
 class Numeric
   def seconds
     self
@@ -156,32 +159,33 @@ class Numeric
     Time.now - self
   end
 end
-                        </code></pre>
-                        <aside class="notes">
-                            <div>这也许是一个大家都能最先想到的实现方法，在 Ruby 中，所有的类都是开放的，可以随时修改的，即使是内部类也不例外。</div>
-                            <div>这个代码已经能实现时间计算的基本功能了，但是还存在两个问题：</div>
-                            <ul>
-                                <li>1. 用户可以调用<code>1.ago</code>，返回前一秒的时间，虽然并没有逻辑错误，但是语意是不对的，不熟悉的人可能无法理解这个写法。</li>
-                                <li>2. 案例中的<code>1.day - 2.hours</code>返回 22 hours 这样的功能没有实现，在 Ruby 中，覆盖<code>inspect</code>方法可以修改这个返回值，当然你不能让所有数字以后都返回成这样的样子，即使那些数字并不表示时间。</li>
-                            </ul>
-                            <div>也许大家很容易想到在第一个例子中我们对于字符串采用的办法，先创造一个子类，然后在子类上实现我们所需要的功能。不过这个办法对数字无效，因为数字是一个基本类型，并没有设计可以传入自身值的构造方法，事实上，数字是不能像对象一样在不改变内存地址的前提下改变自身的。</div>
-                        </aside>
-					</section>
-					<section>
+            </code></pre>
+            <aside class="notes">
+              <div>这也许是一个大家都能最先想到的实现方法，在 Ruby 中，所有的类都是开放的，可以随时修改的，即使是内部类也不例外。</div>
+              <div>这个代码已经能实现时间计算的基本功能了，但是还存在三个问题：</div>
+              <ul>
+                <li>1. 用户可以调用<code>1.ago</code>，返回前一秒的时间，虽然并没有逻辑错误，但是语意是不对的，不熟悉的人可能无法理解这个写法。</li>
+                <li>2. 用户可以调用<code>1.hour.hour</code>，不仅语义奇怪而且返回值也难以理解。</li>
+                <li>3. 案例中的<code>1.day - 2.hours</code>返回 22 hours 这样的功能没有实现，在 Ruby 中，覆盖<code>inspect</code>方法可以修改这个返回值，当然你不能让所有数字以后都返回成这样的样子，即使那些数字并不表示时间。</li>
+              </ul>
+              <div>也许大家很容易想到在第一个例子中我们对于字符串采用的办法，先创造一个子类，然后在子类上实现我们所需要的功能。不过这个办法对数字无效，因为数字是一个基本类型，并没有设计可以传入自身值的构造方法，事实上，数字是不能像对象一样在不改变内存地址的前提下改变自身状态的。</div>
+            </aside>
+          </section>
+          <section>
 						<h3>BlankSlate</h3>
-                        <pre><code class="ruby">
+              <pre><code class="ruby">
 class BlankSlate &lt; BasicObject
   undef_method :==
   undef_method :equal?
 end
-                        </code></pre>
+              </code></pre>
 						<aside class="notes">
-                            <div>在这里，我们采用的方法是代理。首先，创造一个几乎没有实现任何方法的 BlankSlate 类。在 Ruby 中，绝大多数类原生就实现了大量方法，即使是 Object 类，也实现了55个方法，这样的类是不能做代理的。幸运的是，Ruby 还有一个比 Object 更基础的类，仅仅实现了必要方法的 BasicObject，这个类在平时不太常用，但是作为 BlankSlate 的基类是十分合适的，只要在 BasicObject 的基础上再移除两个方法即可。</div>
+              <div>在这里，我们采用的方法是代理。首先，创造一个几乎没有实现任何方法的 BlankSlate 类。在 Ruby 中，绝大多数类原生就实现了大量方法，即使是 Object 类，也实现了55个方法，这样的类是不能做代理的。幸运的是，Ruby 还有一个比 Object 更基础的类，仅仅实现了必要方法的 BasicObject，这个类在平时不太常用，但是作为 BlankSlate 的基类是十分合适的，只要在 BasicObject 的基础上再移除两个方法即可。</div>
 						</aside>
 					</section>
-                    <section>
-                        <h3>Proxy</h3>
-                        <pre><code class="ruby" style="max-height: inherit;">
+          <section>
+            <h3>Proxy</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
 class Duration &lt; BlankSlate
   def initialize proxy
     @proxy = proxy
@@ -203,1640 +207,130 @@ class Duration &lt; BlankSlate
     ::Time.now - @proxy
   end
 
-  private
-    def method_missing method, *args, &amp;block
-      if %i[day days hour hours minute minutes second seconds].include?(method)
-        super
+  private def method_missing method, *args, &amp;block
+    @proxy.send method, *args, &amp;block
+  end
+end
+            </code></pre>
+            <aside class="notes">
+              <div>有了 BlankSlate 类，创建它的子类并且定义具有转发功能的<code>method_missing</code>方法即可，由于 BlankSlate 几乎没有实现任何方法，所以几乎总会调用到<code>method_missing</code>，并让被托管的对象来做具体的事情。考虑到实现难度，我们暂时不设计一个无比优雅的Ruby风格的DSL来实现托管功能。</div>
+              <div>由于数字的运算总是返回数字，而我们希望 Duration 类的实例与数字的计算还是返回一个 Duration 的实例，因此我们覆盖了<code>+</code>，<code>-</code>和负数的运算实现（这里需要注意 Ruby 是支持运算符重载的），然后把<code>ago</code>的实现搬过来，这样<code>1.ago</code>就会返回 NoMethodError 错误而<code>1.day.ago</code>还能正确运行了。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>Numeric</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+class Numeric
+  def seconds
+    Duration.new self
+  end
+  alias second seconds
+
+  def minutes
+    Duration.new(self * 60)
+  end
+  alias minute minutes
+
+  def hours
+    Duration.new(self * 60.minutes)
+  end
+  alias hour hours
+
+  def days
+    Duration.new(self * 24.hours)
+  end
+  alias day days
+end
+            </code></pre>
+            <aside class="notes">
+              <div>修改后的Numeric类</div>
+            </aside>
+          </section>
+          <section>
+            <h3>Question?</h3>
+            <p>How to avoid <code>1.hour.hour</code>?</p>
+            <aside class="notes">
+              <div>现场提问：上述代码还没有解决前面提到的<code>1.hour.hour</code>依然可以执行的问题，为什么？如何解决？</div>
+              <div>答案：由于Duration将<code>hour</code>方法转发给了Numeric对象，因此依然可以调用<code>hour</code>方法，解决方案是在<code>method_missing</code>里增加判断语句，阻止转发。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>inspect</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+class Duration
+  def inspect
+    value = @proxy
+    parts = %w[days hours minutes seconds].inject([]) do |units, unit|
+      if value &gt;= 1.send(unit)
+        quotient, value = value.divmod 1.send(unit)
+        units + [[quotient, unit]]
       else
-        @proxy.send method, *args, &amp;block
+        units
       end
     end
-end
-                        </code></pre>
-                        <aside class="notes">
-                            <div>有了 BlankSlate 类，创建它的子类并且定义具有转发功能的<code>method_missing</code>方法即可，由于 BlankSlate 几乎没有实现任何方法，所以几乎总会调用到<code>method_missing</code>，并让被托管的对象来做具体的事情。考虑到实现难度，我们暂时不设计一个无比优雅的Ruby风格的DSL来实现托管功能。</div>
-                            <div>由于数字的运算总是返回数字，而我们希望 Duration 类的实例与数字的计算还是返回一个 Duration 的实例，因此我们覆盖了<code>+</code>，<code>-</code>和负数的运算实现（这里需要注意 Ruby 是支持运算符重载的），然后把<code>ago</code>的实现搬过来，这样<code>1.ago</code>就会返回 NoMethodError 错误而<code>1.day.ago</code>还能正确运行了。另外为了防止类似于<code>1.day.minute</code>这样错误语意的代码，我们要求<code>method_missing</code>不转发这些方法。</div>
-                        </aside>
-                    </section>
-					<section>
-						<h3></h3>
-						<pre><code class="ruby">
-require 'ripper'
-require 'pp'
-code = &lt;&lt;-STR
-  10.times do |n|
-    puts n
+    parts.map! {|value, unit| "#{value} #{value == 1 ? unit.chop : unit}" }
+    parts.join(', ')
   end
-STR
-p Ripper.tokenize(code)
-pp Ripper.lex(code)
-						</code></pre>
-						<aside class="notes">
-							Ripper, which was provided since 1.9, allows you to call the same tokenization and parsing code that Ruby uses to process text from code files.
-						</aside>
-					</section>
-					<section>
-						<pre><code class="ruby" style="max-height: inherit;">
-["  ", "10", ".", "times", " ", "do", " ", "|", "n", "|", "\n", "    ", "puts", " ", "n", "\n", "  ", "end", "\n"]
-
-[[[1, 0], :on_sp, "  "],
- [[1, 2], :on_int, "10"],
- [[1, 4], :on_period, "."],
- [[1, 5], :on_ident, "times"],
- [[1, 10], :on_sp, " "],
- [[1, 11], :on_kw, "do"],
- [[1, 13], :on_sp, " "],
- [[1, 14], :on_op, "|"],
- [[1, 15], :on_ident, "n"],
- [[1, 16], :on_op, "|"],
- [[1, 17], :on_ignored_nl, "\n"],
- [[2, 0], :on_sp, "    "],
- [[2, 4], :on_ident, "puts"],
- [[2, 8], :on_sp, " "],
- [[2, 9], :on_ident, "n"],
- [[2, 10], :on_nl, "\n"],
- [[3, 0], :on_sp, "  "],
- [[3, 2], :on_kw, "end"],
- [[3, 5], :on_nl, "\n"]]
-						</code></pre>
-                        <aside class="notes">
-                            Result
-                        </aside>
-					</section>
-				</section>
-
-				<section>
-					<section>
-						<h1>Parsing</h1>
-						<h2>LALR, Bison</h2>
-                        <aside class="notes">
-                            MRI uses GNU Bison to generate the parser code, from <code>parse.y</code> to <code>parse.c</code>
-                        </aside>
-					</section>
-					<section>
-						<h3>Spanish =&gt; English Example</h3>
-						<pre><code class="asciidoc">
-Me gusta el Ruby. => I Like Ruby.
-Le gusta el Ruby. => She likes Ruby.
-						</code></pre>
-                        <aside class="notes">
-                            An Simple Example
-                        </aside>
-					</section>
-					<section>
-						<h3>Bison/Yacc grammar</h3>
-						<pre><code class="asciidoc">
-SpanishPhrase: VerbAndObject el ruby {
-  printf("%s Ruby\n", $1);
-};
-VerbAndObject: SheLikes | ILike {
-  $$ = $1;
-};
-SheLikes: le gusta {
-  $$ = "She likes";
-}
-ILike: me gusta {
-  $$ = "I like";
-}
-						</code></pre>
-                        <aside class="notes">
-                            Grammar Rule
-                        </aside>
-					</section>
-					<section>
-						<h3>Simplified Steps</h3>
-						<table style="margin: auto;">
-							<tr>
-								<th>Grammar Rule Stack</th>
-								<th>Tokens</th>
-								<th>Action</th>
-							</tr>
-							<tr>	
-								<td></td>
-								<td>le gusta el ruby</td>
-								<td></td>
-							</tr>	
-							<tr>	
-								<td>le</td>
-								<td>gusta el ruby</td>
-								<td>Shift</td>
-							</tr>	
-							<tr>	
-								<td>le gusta</td>
-								<td>el ruby</td>
-								<td>Shift</td>
-							</tr>	
-							<tr>	
-								<td>SheLikes</td>
-								<td>el ruby</td>
-								<td>Reduce</td>
-							</tr>	
-							<tr>	
-								<td>VerbAndObject</td>
-								<td>el ruby</td>
-								<td>Reduce</td>
-							</tr>	
-							<tr>	
-								<td>VerbAndObject el</td>
-								<td>ruby</td>
-								<td>Shift</td>
-							</tr>	
-							<tr>	
-								<td>VerbAndObject el ruby</td>
-								<td></td>
-								<td>Shift</td>
-							</tr>	
-							<tr>	
-								<td>SpanishPhrase</td>
-								<td></td>
-								<td>Match</td>
-							</tr>	
-						</table>
-						<aside class="notes">
-                            <ul>
-                                <li>Looks too simple to explain</li>
-                                <li>But LALR is very complicated actually we must follow LALR Goto Table</li>
-                                <li>No real Ruby example here, let's have a glance at the real code</li>
-                            </ul>
-						</aside>
-					</section>
-					<section>
-						<h3>parse.y</h3>
-						<aside class="notes">
-							<p>parse.y:860</p>
-							<a target="_blank" href="/examples/ruby-1-4-bnf.pdf">BNF Syntax of Ruby 1.4</a>
-						</aside>
-					</section>
-					<section>
-						<h3>ruby -y</h3>
-						<pre><code class="ruby">
-10.times do |n|
-  puts n
 end
-						</code></pre>
-                        <aside class="notes">
-                            Another example
-                        </aside>
-					</section>
+            </code></pre>
+            <aside class="notes">
+              <div>至于让<code>1.day - 2.hours</code>返回 22 hours，只要覆盖<code>inspect</code>方法即可，这里有个简易实现（这个实现是有缺陷的，没有考虑值为0和负数的情况，也没有去实现本地化，只是为了让大家有个概念而已。这个实现也并非来自Rails，事实上Rails采用的算法更简陋）</div>
+            </aside>
+          </section>
+        </section>
+        <section>
 					<section>
-						<pre><code class="asciidoc" style="max-height: 600px;">
-Starting parse
-Entering state 0
-Reducing stack by rule 1 (line 782):
--> $$ = nterm @1 ()
-Stack now 0
-Entering state 2
-Reading a token: Next token is token tINTEGER ()
-Shifting token tINTEGER ()
-Entering state 41
-Reducing stack by rule 470 (line 4255):
-   $1 = token tINTEGER ()
--> $$ = nterm numeric ()
-Stack now 0 2
-Entering state 104
-Reducing stack by rule 428 (line 3830):
-   $1 = nterm numeric ()
--> $$ = nterm literal ()
-Stack now 0 2
-Entering state 94
-Reducing stack by rule 270 (line 2616):
-   $1 = nterm literal ()
--> $$ = nterm primary ()
-Stack now 0 2
-Entering state 80
-Reading a token: Next token is token '.' ()
-Reducing stack by rule 329 (line 3071):
-   $1 = nterm primary ()
--> $$ = nterm primary_value ()
-Stack now 0 2
-Entering state 81
-Next token is token '.' ()
-Shifting token '.' ()
-Entering state 336
-Reading a token: Next token is token tIDENTIFIER ()
-Shifting token tIDENTIFIER ()
-Entering state 533
-Reading a token: Next token is token keyword_do ()
-Reducing stack by rule 550 (line 4823):
-   $1 = token tIDENTIFIER ()
--> $$ = nterm operation2 ()
-Stack now 0 2 81 336
-Entering state 538
-Next token is token keyword_do ()
-Reducing stack by rule 572 (line 4874):
--> $$ = nterm none ()
-Stack now 0 2 81 336 538
-Entering state 676
-Reducing stack by rule 246 (line 2426):
-   $1 = nterm none ()
--> $$ = nterm opt_paren_args ()
-Stack now 0 2 81 336 538
-Entering state 674
-Reducing stack by rule 404 (line 3635):
-   $1 = nterm primary_value ()
-   $2 = token '.' ()
-   $3 = nterm operation2 ()
-   $4 = nterm opt_paren_args ()
--> $$ = nterm method_call ()
-Stack now 0 2
-Entering state 93
-Next token is token keyword_do ()
-Shifting token keyword_do ()
-Entering state 380
-Reducing stack by rule 414 (line 3735):
--> $$ = nterm @28 ()
-Stack now 0 2 93 380
-Entering state 576
-Reading a token: Next token is token '|' ()
-Shifting token '|' ()
-Entering state 653
-Reading a token: Next token is token tIDENTIFIER ()
-Shifting token tIDENTIFIER ()
-Entering state 761
-Reading a token: Next token is token '|' ()
-Reducing stack by rule 518 (line 4543):
-   $1 = token tIDENTIFIER ()
--> $$ = nterm f_norm_arg ()
-Stack now 0 2 93 380 576 653
-Entering state 636
-Reducing stack by rule 519 (line 4550):
-   $1 = nterm f_norm_arg ()
--> $$ = nterm f_arg_item ()
-Stack now 0 2 93 380 576 653
-Entering state 637
-Reducing stack by rule 521 (line 4578):
-   $1 = nterm f_arg_item ()
--> $$ = nterm f_arg ()
-Stack now 0 2 93 380 576 653
-Entering state 765
-Next token is token '|' ()
-Reducing stack by rule 572 (line 4874):
--> $$ = nterm none ()
-Stack now 0 2 93 380 576 653 765
-Entering state 748
-Reducing stack by rule 537 (line 4723):
-   $1 = nterm none ()
--> $$ = nterm opt_f_block_arg ()
-Stack now 0 2 93 380 576 653 765
-Entering state 850
-Reducing stack by rule 372 (line 3377):
-   $1 = nterm f_arg ()
-   $2 = nterm opt_f_block_arg ()
--> $$ = nterm block_param ()
-Stack now 0 2 93 380 576 653
-Entering state 763
-Next token is token '|' ()
-Reducing stack by rule 572 (line 4874):
--> $$ = nterm none ()
-Stack now 0 2 93 380 576 653 763
-Entering state 770
-Reducing stack by rule 385 (line 3479):
-   $1 = nterm none ()
--> $$ = nterm opt_bv_decl ()
-Stack now 0 2 93 380 576 653 763
-Entering state 847
-Next token is token '|' ()
-Shifting token '|' ()
-Entering state 905
-Reducing stack by rule 384 (line 3468):
-   $1 = token '|' ()
-   $2 = nterm block_param ()
-   $3 = nterm opt_bv_decl ()
-   $4 = token '|' ()
--> $$ = nterm block_param_def ()
-Stack now 0 2 93 380 576
-Entering state 655
-Reducing stack by rule 381 (line 3444):
-   $1 = nterm block_param_def ()
--> $$ = nterm opt_block_param ()
-Stack now 0 2 93 380 576
-Entering state 716
-Reading a token: Next token is token tIDENTIFIER ()
-Shifting token tIDENTIFIER ()
-Entering state 35
-Reading a token: Next token is token tIDENTIFIER ()
-Reducing stack by rule 547 (line 4818):
-   $1 = token tIDENTIFIER ()
--> $$ = nterm operation ()
-Stack now 0 2 93 380 576 716
-Entering state 110
-Next token is token tIDENTIFIER ()
-Reducing stack by rule 258 (line 2499):
--> $$ = nterm @7 ()
-Stack now 0 2 93 380 576 716 110
-Entering state 219
-Next token is token tIDENTIFIER ()
-Shifting token tIDENTIFIER ()
-Entering state 35
-Reading a token: Next token is token '\n' ()
-Reducing stack by rule 474 (line 4275):
-   $1 = token tIDENTIFIER ()
--> $$ = nterm user_variable ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 209
-Next token is token '\n' ()
-Reducing stack by rule 486 (line 4291):
-   $1 = nterm user_variable ()
--> $$ = nterm var_ref ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 107
-Reducing stack by rule 276 (line 2622):
-   $1 = nterm var_ref ()
--> $$ = nterm primary ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 80
-Next token is token '\n' ()
-Reducing stack by rule 239 (line 2375):
-   $1 = nterm primary ()
--> $$ = nterm arg ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 203
-Next token is token '\n' ()
-Reducing stack by rule 240 (line 2381):
-   $1 = nterm arg ()
--> $$ = nterm arg_value ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 204
-Next token is token '\n' ()
-Reducing stack by rule 263 (line 2531):
-   $1 = nterm arg_value ()
--> $$ = nterm args ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 207
-Next token is token '\n' ()
-Reducing stack by rule 572 (line 4874):
--> $$ = nterm none ()
-Stack now 0 2 93 380 576 716 110 219 207
-Entering state 398
-Reducing stack by rule 262 (line 2525):
-   $1 = nterm none ()
--> $$ = nterm opt_block_arg ()
-Stack now 0 2 93 380 576 716 110 219 207
-Entering state 397
-Reducing stack by rule 254 (line 2463):
-   $1 = nterm args ()
-   $2 = nterm opt_block_arg ()
--> $$ = nterm call_args ()
-Stack now 0 2 93 380 576 716 110 219
-Entering state 409
-Reducing stack by rule 259 (line 2499):
-   $1 = nterm @7 ()
-   $2 = nterm call_args ()
--> $$ = nterm command_args ()
-Stack now 0 2 93 380 576 716 110
-Entering state 387
-Next token is token '\n' ()
-Reducing stack by rule 58 (line 1344):
-   $1 = nterm operation ()
-   $2 = nterm command_args ()
--> $$ = nterm command ()
-Stack now 0 2 93 380 576 716
-Entering state 72
-Next token is token '\n' ()
-Reducing stack by rule 51 (line 1297):
-   $1 = nterm command ()
--> $$ = nterm command_call ()
-Stack now 0 2 93 380 576 716
-Entering state 70
-Reducing stack by rule 44 (line 1249):
-   $1 = nterm command_call ()
--> $$ = nterm expr ()
-Stack now 0 2 93 380 576 716
-Entering state 69
-Next token is token '\n' ()
-Reducing stack by rule 41 (line 1225):
-   $1 = nterm expr ()
--> $$ = nterm stmt ()
-Stack now 0 2 93 380 576 716
-Entering state 245
-Next token is token '\n' ()
-Reducing stack by rule 14 (line 933):
-   $1 = nterm stmt ()
--> $$ = nterm stmts ()
-Stack now 0 2 93 380 576 716
-Entering state 244
-Next token is token '\n' ()
-Shifting token '\n' ()
-Entering state 289
-Reducing stack by rule 569 (line 4866):
-   $1 = token '\n' ()
--> $$ = nterm term ()
-Stack now 0 2 93 380 576 716 244
-Entering state 291
-Reducing stack by rule 570 (line 4869):
-   $1 = nterm term ()
--> $$ = nterm terms ()
-Stack now 0 2 93 380 576 716 244
-Entering state 433
-Reading a token: Next token is token keyword_end ()
-Reducing stack by rule 560 (line 4847):
-   $1 = nterm terms ()
--> $$ = nterm opt_terms ()
-Stack now 0 2 93 380 576 716 244
-Entering state 432
-Reducing stack by rule 12 (line 913):
-   $1 = nterm stmts ()
-   $2 = nterm opt_terms ()
--> $$ = nterm compstmt ()
-Stack now 0 2 93 380 576 716
-Entering state 817
-Next token is token keyword_end ()
-Shifting token keyword_end ()
-Entering state 881
-Reducing stack by rule 415 (line 3734):
-   $1 = token keyword_do ()
-   $2 = nterm @28 ()
-   $3 = nterm opt_block_param ()
-   $4 = nterm compstmt ()
-   $5 = token keyword_end ()
--> $$ = nterm brace_block ()
-Stack now 0 2 93
-Entering state 382
-Reducing stack by rule 298 (line 2781):
-   $1 = nterm method_call ()
-   $2 = nterm brace_block ()
--> $$ = nterm primary ()
-Stack now 0 2
-Entering state 80
-Reading a token: Next token is token '\n' ()
-Reducing stack by rule 239 (line 2375):
-   $1 = nterm primary ()
--> $$ = nterm arg ()
-Stack now 0 2
-Entering state 79
-Next token is token '\n' ()
-Reducing stack by rule 49 (line 1282):
-   $1 = nterm arg ()
--> $$ = nterm expr ()
-Stack now 0 2
-Entering state 69
-Next token is token '\n' ()
-Reducing stack by rule 41 (line 1225):
-   $1 = nterm expr ()
--> $$ = nterm stmt ()
-Stack now 0 2
-Entering state 67
-Next token is token '\n' ()
-Reducing stack by rule 8 (line 855):
-   $1 = nterm stmt ()
--> $$ = nterm top_stmt ()
-Stack now 0 2
-Entering state 66
-Reducing stack by rule 5 (line 833):
-   $1 = nterm top_stmt ()
--> $$ = nterm top_stmts ()
-Stack now 0 2
-Entering state 65
-Next token is token '\n' ()
-Shifting token '\n' ()
-Entering state 289
-Reducing stack by rule 569 (line 4866):
-   $1 = token '\n' ()
--> $$ = nterm term ()
-Stack now 0 2 65
-Entering state 291
-Reducing stack by rule 570 (line 4869):
-   $1 = nterm term ()
--> $$ = nterm terms ()
-Stack now 0 2 65
-Entering state 292
-Reading a token: Now at end of input.
-Reducing stack by rule 560 (line 4847):
-   $1 = nterm terms ()
--> $$ = nterm opt_terms ()
-Stack now 0 2 65
-Entering state 290
-Reducing stack by rule 3 (line 813):
-   $1 = nterm top_stmts ()
-   $2 = nterm opt_terms ()
--> $$ = nterm top_compstmt ()
-Stack now 0 2
-Entering state 64
-Reducing stack by rule 2 (line 782):
-   $1 = nterm @1 ()
-   $2 = nterm top_compstmt ()
--> $$ = nterm program ()
-Stack now 0
-Entering state 1
-Now at end of input.
-Stack now 0 1
-Cleanup: popping nterm program ()
-						</code></pre>
-					</section>
-					<section>
-						<h3>Ripper.sexp</h3>
+						<h3>Module Include &amp; Extend</h3>
 						<pre><code class="ruby">
-require 'ripper'
-require 'pp'
-code = &lt;&lt;-STR
-  10.times do |n|
-    puts n
-  end
-STR
-puts code
-pp Ripper.sexp(code)
-						</code></pre>
-                        <aside class="notes">
-                            Parse source code and create S-exp tree.
-                        </aside>
-					</section>
-					<section>
-						<pre><code class="ruby">
-[:program,
- [[:method_add_block,
-   [:call, [:@int, "10", [1, 3]], :".", [:@ident, "times", [1, 6]]],
-   [:do_block,
-    [:block_var,
-     [:params, [[:@ident, "n", [1, 16]]], nil, nil, nil, nil],
-     nil],
-    [[:command,
-      [:@ident, "puts", [2, 0]],
-      [:args_add_block, [[:var_ref, [:@ident, "n", [2, 5]]]], false]]]]]]]
-						</code></pre>
-					</section>
-					<section>
-						<h3>ruby --dump parsetree</h3>
-						<pre><code class="asciidoc" style="max-height: 600px;">
-@ NODE_SCOPE (line: 3)
-+- nd_tbl: (empty)
-+- nd_args:
-|   (null node)
-+- nd_body:
-    @ NODE_ITER (line: 1)
-    +- nd_iter:
-    |   @ NODE_CALL (line: 1)
-    |   +- nd_mid: :times
-    |   +- nd_recv:
-    |   |   @ NODE_LIT (line: 1)
-    |   |   +- nd_lit: 10
-    |   +- nd_args:
-    |       (null node)
-    +- nd_body:
-        @ NODE_SCOPE (line: 3)
-        +- nd_tbl: :n
-        +- nd_args:
-        |   @ NODE_ARGS (line: 1)
-        |   +- nd_frml: 1
-        |   +- nd_next:
-        |   |   @ NODE_ARGS_AUX (line: 1)
-        |   |   +- nd_rest: (null)
-        |   |   +- nd_body: (null)
-        |   |   +- nd_next:
-        |   |       (null node)
-        |   +- nd_opt:
-        |       (null node)
-        +- nd_body:
-            @ NODE_FCALL (line: 2)
-            +- nd_mid: :puts
-            +- nd_args:
-                @ NODE_ARRAY (line: 2)
-                +- nd_alen: 1
-                +- nd_head:
-                |   @ NODE_DVAR (line: 2)
-                |   +- nd_vid: :n
-                +- nd_next:
-                    (null node)
-						</code></pre>
-                        <aside class="notes">
-                            Also shows node info, which is very related to the implementation.
-                        </aside>
-					</section>
-                    <section>
-                        <h3>Equivalent AST nodes</h3>
-                        <img src="img/ruby-ast-example.png" />
-                        <aside class="notes">
-                            NODE_LIT means literal.
-                        </aside>
-                    </section>
-				</section>
-
-				<section>
-					<section>
-						<h1>Compilation</h1>
-					</section>
-					<section>
-						<h3>Ruby 1.8</h3>
-						<img src="img/ruby-18-layers.png" />
-                        <aside class="notes">
-                            No compilation in Ruby 1.8, Ruby 1.8 execute AST directly.
-                        </aside>
-					</section>
-					<section>
-						<h3>Ruby 1.9 &amp; 2.0</h3>
-						<img src="img/ruby-19-20-layers.png" />
-                        <aside class="notes">
-                            Ruby 1.9 compiles Ruby code to YARV instruments.
-                        </aside>
-					</section>
-					<section>
-						<h3>Benchmark</h3>
-						<pre><code class="ruby">
-i= 0
-while i &lt; ARGV[0].to_i
-  i += 1
-end
-						</code></pre>
-                        <aside class="notes">
-                            Performance competition between AST and YARV instruments.
-                        </aside>
-					</section>
-					<section>
-						<h3>logarithmic scale</h3>
-						<img src="img/ruby-logarithmic-performance.png" />
-                        <aside class="notes">
-                            You can see that for short-lived processes, Ruby 1.8.7 is actually faster than Ruby 1.9.3 and 2.0 because there is no need to compile the Ruby code into YARV instructions.
-                            However, after about 11,000 iterations, Ruby 1.9.3 and 2.0 are faster.
-                        </aside>
-					</section>
-					<section>
-						<h3>linear scale</h3>
-						<img src="img/ruby-linear-performance.png" />
-					</section>
-					<section>
-						<h3>Displaying YARV Instructions</h3>
-						<pre><code class="ruby">
-code = &lt;&lt;-RUBY
-  puts 1 + 2
-RUBY
-
-puts RubyVM::InstructionSequence.compile(code).disasm
-						</code></pre>
-					</section>
-					<section>
-						<h3>Compiled</h3>
-						<pre><code class="asciidoc">
-== disasm: &lt;RubyVM::InstructionSequence:&lt;compiled&gt;@&lt;compiled&gt;&gt;==========
-0000 trace            1                                               (   1)
-0002 putself
-0003 putobject_OP_INT2FIX_O_1_C_
-0004 putobject        2
-0006 opt_plus         &lt;callinfo!mid:+, argc:1, ARGS_SKIP&gt;
-0008 opt_send_simple  &lt;callinfo!mid:puts, argc:1, FCALL|ARGS_SKIP&gt;
-0010 leave
-						</code></pre>
-						<aside class="notes">
-                            <ul>
-							    <li>Execute in Stack machine</li>
-                                <li><code>putobject_OP_INT2FIX_O_1_C_</code> is equivalent to <code>putobject 1</code></li>
-                                <li>ARGS_SKIP indicates the arguments are simple values (not blocks or arrays of unnamed arguments), allowing YARV to skip some work it would have to do otherwise.</li>
-                                <li>MRI traverses the AST nodes(result of <code>ruby -y</code>) and generate these instruments.</li>
-                            </ul>
-						</aside>
-					</section>
-					<section>
-						<h3>Another Example</h3>
-						<pre><code class="ruby">
-code = &lt;&lt;-RUBY
-  10.times do |n|
-    puts n
-  end
-RUBY
-
-puts RubyVM::InstructionSequence.compile(code).disasm
-						</code></pre>
-					</section>
-					<section>
-						<h3>Compiled</h3>
-						<pre><code class="asciidoc" style="max-height: inherit;">
-== disasm: &lt;RubyVM::InstructionSequence:&lt;compiled&gt;@&lt;compiled&gt;&gt;==========
-== catch table
-| catch type: break  st: 0002 ed: 0006 sp: 0000 cont: 0006
-|------------------------------------------------------------------------
-0000 trace            1                                               (   1)
-0002 putobject        10
-0004 send             &lt;callinfo!mid:times, argc:0, block:block in &lt;compiled&gt;&gt;
-0006 leave
-== disasm: &lt;RubyVM::InstructionSequence:block in &lt;compiled&gt;@&lt;compiled&gt;&gt;=
-== catch table
-| catch type: redo   st: 0000 ed: 0009 sp: 0000 cont: 0000
-| catch type: next   st: 0000 ed: 0009 sp: 0000 cont: 0009
-|------------------------------------------------------------------------
-local table (size: 2, argc: 1 [opts: 0, rest: -1, post: 0, block: -1] s3)
-[ 2] n&lt;Arg&gt;
-0000 trace            256                                             (   1)
-0002 trace            1                                               (   2)
-0004 putself
-0005 getlocal_OP__WC__0 2
-0007 opt_send_simple  &lt;callinfo!mid:puts, argc:1, FCALL|ARGS_SKIP&gt;
-0009 trace            512                                             (   3)
-0011 leave                                                            (   2)
-						</code></pre>
-						<aside class="notes">
-                            <ul>
-    							<li>Notice Local variable</li>
-                                <li><code>getlocal_OP__WC__0</code> is equivalent to <code>getlocal *, 0</code></li>
-                                <li>This trick allows Ruby 2.0 to save a bit of time because it doesn’t need to pass the 0 argument separately.</li>
-                            </ul>
-						</aside>
-					</section>
-                    <section>
-                        <h3>iseq_compile_each in compile.c</h3>
-                        <aside class="notes">
-                            <p>How Ruby interates thought the AST</p>
-                            <p>compile.c:3191</p>
-                        </aside>
-                    </section>
-				</section>
-
-				<section>
-					<section>
-						<h1>Execution</h1>
-						<h3>As double stack machine</h3>
-					</section>
-					<section>
-						<h3>rb_control_frame_t</h3>
-						<img src="img/rb_control_frame_t-1.png" />
-                        <aside class="notes">
-                            pc, sp, self, type(frame type)
-                        </aside>
-					</section>
-					<section>
-						<h3>caller</h3>
-						<img src="img/rb_control_frame_t-2.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>Just like we call <code>caller</code></li>
-                                <li>CFP =&gt; current frame pointer</li>
-                            </ul>
-                        </aside>
-					</section>
-					<section>
-						<h3>Example</h3>
-						<pre><code class="ruby">
-10.times do
-  puts "The quick brown fox jumps over the lazy dog."
-end
-						</code></pre>
-					</section>
-					<section>
-						<img src="img/rb_control_frame_t-3.png" />
-                        <aside class="notes">
-                            <p>Ruby always creates "TOP" frame first when starting a new program. At the top of the stack, at least initially, a frame of type "EVAL" corresponds to the top level or main scope of the Ruby script.</p>
-                        </aside>
-					</section>
-					<section>
-						<h3>Local Variable Access</h3>
-					</section>
-					<section>
-						<h3>Environment Pointer</h3>
-						<img src="img/local_variable_1.png" />
-						<aside class="notes">
-                            <ul>
-    							<li>EP = SP - 1</li>
-    							<li>Special: to track information related to blocks(rb_block_t).</li>
-                            </ul>
-						</aside>
-					</section>
-					<section>
-						<img src="img/local_variable_2.png" />
-						<aside class="notes">
-                            <ul>
-    							<li>Local variable table is not a table(Just like Stack variable in C)</li>
-                                <li>special: to track information related to blocks(rb_block_t) (doesn't mean special variable table).</li>
-    							<li>svar: pointer to special variable table(only for ruby method call)</li>
-    							<li>cref: pointer to current lexical scope(designed for *_eval, *_exec methods, only for block call)</li>
-    							<li>Method Arguments Are Treated Like Local Variables</li>
-                            </ul>
-						</aside>
-					</section>
-					<section>
-						<h3>Dynamic Variable Access</h3>
-						<pre><code class="ruby">
-code = &lt;&lt;-RUBY
-  def display_string
-    str = "Dynamic access."
-    10.times do
-      puts str
-    end
-  end
-RUBY
-
-puts RubyVM::InstructionSequence.compile(code).disasm
-						</code></pre>
-					</section>
-					<section>
-						<pre><code class="asciidoc" style="max-height: inherit;">
-== disasm: &lt;RubyVM::InstructionSequence:f@&lt;compiled&gt;&gt;===================
-== catch table
-| catch type: break  st: 0010 ed: 0014 sp: 0000 cont: 0014
-|------------------------------------------------------------------------
-local table (size: 2, argc: 0 [opts: 0, rest: -1, post: 0, block: -1] s1)
-[ 2] str
-0000 trace            8                                               (   1)
-0002 trace            1                                               (   2)
-0004 putstring        "Dynamic access."
-0006 setlocal_OP__WC__0 2
-0008 trace            1                                               (   3)
-0010 putobject        10
-0012 send             &lt;callinfo!mid:times, argc:0, block:block in f&gt;
-0014 trace            16                                              (   6)
-0016 leave                                                            (   3)
-== disasm: &lt;RubyVM::InstructionSequence:block in f@&lt;compiled&gt;&gt;==========
-== catch table
-| catch type: redo   st: 0000 ed: 0009 sp: 0000 cont: 0000
-| catch type: next   st: 0000 ed: 0009 sp: 0000 cont: 0009
-|------------------------------------------------------------------------
-0000 trace            256                                             (   3)
-0002 trace            1                                               (   4)
-0004 putself
-0005 getlocal_OP__WC__1 2
-0007 opt_send_simple  &lt;callinfo!mid:puts, argc:1, FCALL|ARGS_SKIP&gt;
-0009 trace            512                                             (   5)
-0011 leave                                                            (   4)
-						</code></pre>
-                        <aside class="notes">
-                            <code>setlocal_OP__WC__0</code> is the same as <code>setlocal *, 0</code>
-                        </aside>
-					</section>
-					<section>
-						<img src="img/dynamic_variable.png" />
-                        <aside class="notes">
-                            <code>getlocal_OP__WC__1 2</code> means to follow Previous EP once, then minus 2
-                        </aside>
-					</section>
-					<section>
-						<h3>Special Variable Access</h3>
-					</section>
-					<section>
-						<h3>Guess?</h3>
-						<pre><code class="ruby">
-str = "The quick brown fox jumped over the lazy dog.\n"
-/fox/.match(str)
-def search(str)
-  /dog/.match(str)
-  puts "Value of $&amp; inside method: #{$&amp;}"
-end
-search(str)
-puts "Value of $&amp; in the top level scope: #{$&amp;}"
-						</code></pre>
-						<aside class="notes">
-							Guess: What's the answer?
-						</aside>
-					</section>
-					<section>
-						<img src="img/special_variable_1.png" />
-                        <aside class="notes">
-                            Each method call has its own special variable table
-                        </aside>
-					</section>
-					<section>
-						<h3>Guess Again?</h3>
-						<pre><code class="ruby">
-str = "The quick brown fox jumped over the lazy dog.\n"
-/fox/.match(str)
-2.times do
-  /dog/.match(str)
-  puts "Value of $&amp; inside block: #{$&amp;}"
-end
-puts "Value of $&amp; in the top level scope: #{$&amp;}"
-						</code></pre>
-						<aside class="notes">
-							Guess: What's the answer?
-						</aside>
-					</section>
-					<section>
-						<img src="img/special_variable_2.png" />
-                        <aside class="notes">
-                            When it's a block call, <code>EP - 1</code> is <code>cref</code>, means Lexical Scope.
-                        </aside>
-					</section>
-					<section>
-						<h3>YARV Instruments Definitions</h3>
-                        <h4>tool/insns2vm.rb: insns.def =&gt; vm.inc</h4>
-						<aside class="notes">
-                            <ul>
-    							<li>Generator: tool/insns2vm.rb, Run by miniruby during the build process</li>
-    							<li>Instruments Definition: insns.def</li>
-                                <li>insns.def is not C code</li>
-    							<li>After compilation: vm.inc, code we really execute</li>
-                            </ul>
-						</aside>
-					</section>
-				</section>
-
-				<section>
-					<section>
-						<h1>Control Structures</h1>
-					</section>
-					<section>
-						<h3>Example</h3>
-						<pre><code class="ruby">
-code = &lt;&lt;-RUBY
-  i = 0
-  while i &lt; 20
-    if i &lt; 10
-      puts 'small'
-    else
-      for j in 0..3
-        puts "large \#{j}"
-      end
-    end
-    i += 1
-  end
-  puts 'done'
-RUBY
-
-puts RubyVM::InstructionSequence.compile(code).disasm
-						</code></pre>
-					</section>
-					<section>
-						<pre><code class="asciidoc" style="max-height: 600px;">
-== disasm: &lt;RubyVM::InstructionSequence:&lt;compiled&gt;@&lt;compiled&gt;&gt;==========
-== catch table
-| catch type: break  st: 0035 ed: 0039 sp: 0000 cont: 0039
-| catch type: break  st: 0013 ed: 0058 sp: 0000 cont: 0058
-| catch type: next   st: 0013 ed: 0058 sp: 0000 cont: 0010
-| catch type: redo   st: 0013 ed: 0058 sp: 0000 cont: 0013
-|------------------------------------------------------------------------
-local table (size: 3, argc: 0 [opts: 0, rest: -1, post: 0, block: -1] s1)
-[ 3] i          [ 2] j
-0000 trace            1                                               (   1)
-0002 putobject_OP_INT2FIX_O_0_C_
-0003 setlocal_OP__WC__0 3
-0005 trace            1                                               (   2)
-0007 jump             49
-0009 putnil
-0010 pop
-0011 jump             49
-0013 trace            1                                               (   3)
-0015 getlocal_OP__WC__0 3
-0017 putobject        10
-0019 opt_lt           &lt;callinfo!mid:&lt;, argc:1, ARGS_SKIP&gt;
-0021 branchunless     33
-0023 trace            1                                               (   4)
-0025 putself
-0026 putstring        "small"
-0028 opt_send_simple  &lt;callinfo!mid:puts, argc:1, FCALL|ARGS_SKIP&gt;
-0030 pop
-0031 jump             40                                              (   3)
-0033 trace            1                                               (   6)
-0035 putobject        0..3
-0037 send             &lt;callinfo!mid:each, argc:0, block:block in &lt;compiled&gt;&gt;
-0039 pop
-0040 trace            1                                               (  10)
-0042 getlocal_OP__WC__0 3
-0044 putobject_OP_INT2FIX_O_1_C_
-0045 opt_plus         &lt;callinfo!mid:+, argc:1, ARGS_SKIP&gt;
-0047 setlocal_OP__WC__0 3
-0049 getlocal_OP__WC__0 3                                             (   2)
-0051 putobject        20
-0053 opt_lt           &lt;callinfo!mid:&lt;, argc:1, ARGS_SKIP&gt;
-0055 branchif         13
-0057 putnil
-0058 pop
-0059 trace            1                                               (  12)
-0061 putself
-0062 putstring        "done"
-0064 opt_send_simple  &lt;callinfo!mid:puts, argc:1, FCALL|ARGS_SKIP&gt;
-0066 leave
-== disasm: &lt;RubyVM::InstructionSequence:block in &lt;compiled&gt;@&lt;compiled&gt;&gt;=
-== catch table
-| catch type: redo   st: 0004 ed: 0018 sp: 0000 cont: 0004
-| catch type: next   st: 0004 ed: 0018 sp: 0000 cont: 0018
-|------------------------------------------------------------------------
-local table (size: 2, argc: 1 [opts: 0, rest: -1, post: 0, block: -1] s3)
-[ 2] ?&lt;Arg&gt;
-0000 getlocal_OP__WC__0 2                                             (   8)
-0002 setlocal_OP__WC__1 2                                             (   6)
-0004 trace            256
-0006 trace            1                                               (   7)
-0008 putself
-0009 putobject        "large "
-0011 getlocal_OP__WC__1 2
-0013 tostring
-0014 concatstrings    2
-0016 opt_send_simple  &lt;callinfo!mid:puts, argc:1, FCALL|ARGS_SKIP&gt;
-0018 trace            512                                             (   8)
-0020 leave                                                            (   7)
-						</code></pre>
-                        <aside class="notes">
-                            <ul>
-                                <li>if: branchunless</li>
-                                <li>while: branchif</li>
-                                <li>for: equivalent to <code>(0..3).each</code></li>
-                            </ul>
-                        </aside>
-					</section>
-					<section>
-						<h3>Catch table</h3>
-						<img src="img/catch_table.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li><code>break</code>, <code>redo</code>, <code>next</code> are not implemented by <code>jump</code></li>
-                                <li>From up to down, ask one by one</li>
-                                <li>assume there's a <code>break</code> or <code>redo</code> or <code>next</code> in <code>for</code> statement in the last example.</li>
-                            </ul>
-                        </aside>
-					</section>
-				</section>
-
-				<section>
-					<section>
-						<h1>Objects &amp; Class</h1>
-					</section>
-					<section>
-						<h3>RObject</h3>
-                        <h4>includes/ruby/ruby.h</h4>
-						<img src="img/r_object.png" />
-						<aside class="notes">
-							<p>At the top of the figure is a pointer to the RObject structure. (Internally, Ruby always refers to any value with a VALUE pointer.) Below this pointer, the RObject structure contains an inner RBasic structure and information specific to custom objects. The RBasic section contains information that all values use: a set of Boolean values called flags that store a variety of internal technical values, and a class pointer called klass.</p>
-							<p>The class pointer indicates which class an object is an instance of. In the RObject section, Ruby saves an array of instance variables that each object contains, using numiv, the instance variable count, and ivptr, a pointer to an array of values.</p>
-                            <p>RBasic: includes/ruby/ruby.h:747</p>
-                            <p>RObject: includes/ruby/ruby.h:762</p>
-						</aside>
-					</section>
-					<section>
-						<h3>Example</h3>
-						<pre><code class="ruby">
-class Mathematician
-  attr_accessor :first_name
-  attr_accessor :last_name
-end
-
-euler = Mathematician.new
-euler.first_name = 'Leonhard'
-euler.last_name = 'Euler'
-
-euclid = Mathematician.new
-euclid.first_name = 'Euclid'
-						</code></pre>
-					</section>
-					<section>
-						<img src="img/r_object_example.png" />
-                        <aside class="notes">
-                            As you can see, instance variable names are not stored in RObject
-                        </aside>
-					</section>
-                    <section>
-                        <h3>Instance Variable Access</h3>
-                        <img src="img/instance_variable_1.png" />
-                        <img src="img/instance_variable_2.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>In Ruby 1.8, RObject stores instance variables as a hashmap.</li>
-                                <li>In Ruby 1.9, RObject just stores values of instance variables in an Array, and RClass stores names of them. Use index to connect them.</li>
-                                <li>Instance variable values table will preallocate more space.</li>
-                        </aside>
-                    </section>
-					<section>
-						<h3>Generic Objects</h3>
-						<img src="img/generic_objects.png" />
-					</section>
-					<section>
-						<h3>Fixnum</h3>
-						<img src="img/fixnum_object.png" />
-						<aside class="notes">
-                            <ul>
-    							<li>Symbol, NilClass, TrueClass, FalseClass has their owned flags.</li>
-                                <li>Float uses double internally, so it has its own class.</li>
-                            </ul>
-						</aside>
-					</section>
-					<section>
-						<h3>How do generic objects have instance variables?</h3>
-						<img src="img/generic_iv_tbl.png" />
-						<aside class="notes">
-							All generic objects don't have their owned numiv and ivptr. Ruby saves it in a special hash called generic_iv_tbl. This hash maintains a map between generic objects and pointers to other hashes that contain each object’s instance variables.
-						</aside>
-					</section>
-                    <section>
-                        <h3>RClass</h3>
-                        <img src="img/r_class.png" />
-                        <aside class="notes">
-                            <p>RClass: include/ruby/ruby.h:790</p>
-                            <p>rb_classext_struct: internal.h:264</p>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Class Instance Variable Access</h3>
-                        <img src="img/class_instance_variable.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>Both class instance variables and class variables are stored in class-level instance variable table</li>
-                                <li>But use two different algorithm</li>
-                                <li>Class instance variable is just stored in RClass simply.</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Class Variable Access</h3>
-                        <img src="img/class_variable.png" />
-                        <aside class="notes">
-                            Ruby search through RClass superclass chain for the Class variable.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Guess?</h3>
-                        <pre><code class="ruby">
-class SuperClass
-end
-class SubClass &lt; SuperClass
-end
-
-SubClass.class_variable_set :@@b, 'b'
-SuperClass.class_variable_set :@@b, 'a'
-SubClass.class_variable_set :@@b
-                        </code></pre>
-                        <aside class="notes">
-                            But Ruby always use the variable which is the super class even subclass has the same class variable.
-                        </aside>
-                    </section>
-				</section>
-
-                <section>
-                    <section>
-                        <h1>Method Lookup &amp; Constant Lookup</h1>
-                    </section>
-                    <section>
-                        <h3>Module</h3>
-                        <h4>There's no RModule in MRI</h4>
-                    </section>
-                    <section>
-                        <img src="img/r_class_for_module.png" />
-                        <aside class="notes">
-                            Share data structure(RClass) with class
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Include Module in a Class</h3>
-                        <pre><code class="ruby">
-module Professor
-end
-
-class Methematician &lt; Person
-  include Professor
-end
-                        </code></pre>
-                    </section>
-                    <section>
-                        <img src="img/include_a_module_in_class.png" />
-                        <aside class="notes">
-                            Ruby just copy the RClass object and insert it into the linked list between the class and its superclass.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Include one Module into Another</h3>
-                        <img src="img/include_multi_modules_in_class.png" />
-                        <aside class="notes">
-                            In that case, just copy the entire module tree.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Prepend Module in a Class</h3>
-                        <img src="img/prepend_module_in_class.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>Since 2.0</li>
-                                <li>When you prepend a module, Ruby creates a copy of the target class and set it as the superclass of the prepended module. And move all methods from the original class to the copy.</li>
-                                <li>Why does this design so tricky? Why not move prepended module as the subclass of the class? If we call method on this class directly, we won't find it if it is defined in prepended module.</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Guess: Does it work?</h3>
-                        <pre><code class="ruby">
-module A; end
-
 class C
-  include A
+  include M
+  extend M::ClassMethods
 end
-
-module A
-  def f
-    'module A'
-  end
-end
-
-C.new.f
-                        </code></pre>
-                        <aside class="notes">
-                            Works, <code>m_tbl</code> will be copyed but still share memory.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Guess Again?</h3>
-                        <pre><code class="ruby" style="max-height: inherit;">
-module A
-  def f
-    'module A'
-  end
-end
-
-module B
-end
-
-class C
-  include B
-end
-
-module B
-  include A
-end
-
-C.new.f
-                        </code></pre>
-                        <aside class="notes">
-                            <p>No, module <code>B</code> has been copyed, it can't include module <code>A</code> in its copy.</p>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>rb_include_module in class.c</h3>
-                        <aside class="notes">
-                            <p>rb_include_module: class.c:823</p>
-                            <p>include_modules_at: class.c:848</p>
-                            <p>rb_include_class_new: class.c:788</p>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Global Method Cache</h3>
-                        <table style="margin: auto;">
-                            <tr><th>klass</th><th>defined_class</th></tr>
-                            <tr><td>Fixnum#times</td><td>Integer#times</td></tr>
-                            <tr><td>Object#puts</td><td>BasicObject#puts</td></tr>
-                            <tr><td>etc ...</td><td>etc ...</td></tr>
-                        </table>
-                    </section>
-                    <section>
-                        <h3>The Inline Method Cache</h3>
-                        <img src="img/inline_method_cache.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>Any possible method creation, importing or removing will clean all caches.</li>
-                                <li>Since 2.1, invalid only sub-classes under effective class</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Lexical Scope</h3>
-                        <img src="img/lexical_scope.png" />
-                        <aside class="notes">
-                            Source code - class - lexical scope
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Constant Access</h3>
-                        <aside class="notes">
-                            We will talk about the algorithm of Constant search
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Guess?</h3>
-                        <pre><code class="ruby">
-class SuperClass
-  FIND_ME = "Found in SuperClass"
-end
-
-module ParentLexicalScope
-  FIND_ME = "Found in ParentLexicalScope"
-
-  class SubClass &lt; SuperClass
-    p FIND_ME
-  end
-end
-                        </code></pre>
-                        <aside class="notes">
-                            <ul>
-                                <li>search through lexical scope chain</li>
-                                <li>for each scope's class, if no constant found, check for autoload</li>
-                                <li>search through superclass chain</li>
-                                <li>for each superclass, if no constant found, check for autoload</li>
-                                <li>if still no constant found, call const_missing</li>
-                            </ul>
-                        </aside>
-                    </section>
-                </section>
-
-                <section>
-                    <section>
-                        <h1>Closure &amp; Binding</h1>
-                    </section>
-                    <section>
-                        <h3>Block</h3>
-                        <pre><code class="ruby">
-10.times do
-  str = "The quick brown fox jumps over the lazy dog."
-  puts str
-end
-                        </code></pre>
-                        <aside class="notes">
-                            We will talk about initialization of <code>rb_block_t</code>.
-                        </aside>
-                    </section>
-                    <section>
-                        <img src="img/rb_block_t_initialization.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>Before call <code>times</code> method, Ruby creates and initializes a new <code>rb_block_t</code> structure to represent the block. Copy the current <code>EP</code> into it.</li>
-                                <li>When <code>yield</code> is called, Ruby can access local variables directly from <code>rb_control_frame_t</code> structure, and access variables from the parent scope indirectly from <code>EP</code> in the block using dynamic variable access.
-                                <li>Ruby doesn't really allocate memory for and initialize <code>rb_block_t</code>, just references subset of <code>rb_control_frame_t</code>, that's why block is not really an Object.
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>vm_core.h</h3>
-                        <aside class="notes">
-                            <ul>
-                                <li>rb_control_frame_t: vm_core.h:445</li>
-                                <li>rb_block_t: vm_core.h:462</li>
-                                <li><code>proc</code> in rb_block_t is used when Ruby creates proc object from a block</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Lambda</h3>
-                        <pre><code class="ruby">
-def message_function
-  str = "The quick brown fox"
-  lambda do |animal|
-    puts "#{str} jumps over the lazy #{animal}." 
-  end
-end
-
-function_value = message_function
-function_value.call 'dog'
-                        </code></pre>
-                        <aside class="notes">
-                            Then let's talk about lambda.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>rb_lambda_t?</h3>
-                    </section>
-                    <section>
-                        <h3>rb_proc_t</h3>
-                        <aside class="notes">
-                            <code>rb_proc_t</code> contains <code>rb_block_t</code>, means a proc is a kind of Ruby object that wraps up a block.
-                        </aside>
-                    </section>
-                    <section>
-                        <img src="img/rb_proc_t_initialization.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>When you call lambda, Ruby copies the entire contents of the current YARV stack frame into the heap.</li>
-                                <li><code>rb_env_t</code> is a wrapper for the heap copy of the stack.</li>
-                                <li>When Ruby calls the block inside the proc, it copies the stack frame in the heap. The new stack frame contains an <code>EP</code> that points to the heap.</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Proc is an Object</h3>
-                        <img src="img/rb_proc_t.png" />
-                        <aside class="notes">
-                            Block is not an Object, but Proc is.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Guess?</h3>
-                        <pre><code class="ruby">
-def message_function
-  str = "The quick brown fox"
-  func = lambda do |animal|
-    puts "#{str} jumps over the lazy #{animal}." 
-  end
-  str = "The sly brown fox"
-  func
-end
-
-function_value = message_function
-function_value.call 'dog'
-                        </code></pre>
-                        <aside class="notes">
-                            <ul>
-                                <li>Once Ruby creates the new heap copy of the stack (the new <code>rb_env_t</code> structure or internal environment object), it resets the <code>EP</code> in the <code>rb_control_frame_t</code> structure to point to the copy.</li>
-                                <li>Each block you pass to the lambdas accesses the same variable in the parent scope. Ruby achieves this by checking whether the EP already points to the heap. So if you create multiple lambdas in the same scope, Ruby won't create the second copy, it will reuse the same <code>rb_env_t</code> structure in the second <code>rb_proc_t</code> structure.</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Benchmark</h3>
-                        <pre><code class="ruby" style="max-height: 600px;">
-require 'benchmark'
-ITERATIONS = 1000000
-Benchmark.bm do |bench|
-  bench.report("While") do
-    ITERATIONS.times do
-      sum = 0
-      i= 1
-      while i &lt;= 10
-        sum += i
-        i += 1 
-      end
+						</code></pre>
+						<aside class="notes">
+              <div>在现有的 Ruby 中，让一个 Module 既能为一个类添加事例方法，也能添加类方法并不容易，因为这在 Ruby 中是两种不同操作，需要调用两种不同方法才能实现。如果还希望模块在被包含后能调用类方法做些初始化工作就更加困难了。</div>
+						</aside>
+					</section>
+          <section>
+            <h3>Module Include &amp; Extend</h3>
+            <pre><code class="ruby">
+module M
+  def self.included(base)
+    base.extend ClassMethods
+    base.class_eval do
+      scope :disabled, -> { where(disabled: true) }
     end
   end
-
-  bench.report("Block") do
-    ITERATIONS.times do
-      sum = 0
-      (1..10).each do |i|
-        sum += i
-      end
-    end
-  end
-
-  bench.report("Lambda") do
-    ITERATIONS.times do
-      sum = 0
-
-      blk = lambda do |i|
-        sum += i
-      end
-
-      (1..10).each(&amp;blk)
-    end
+  module ClassMethods
+    # ...
   end
 end
-                        </code></pre>
-                        <aside class="notes">
-                            Let's see a performance benchmark between while, block and lambda.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Result</h3>
-                        <pre><code class="asciidoc">
-        user       system      total        real
-While   0.480000   0.000000   0.480000 (  0.479636)
-Block   0.900000   0.000000   0.900000 (  0.899904)
-Lambda  1.720000   0.050000   1.770000 (  1.763199)
-                        </code></pre>
-                    </section>
-                    <section>
-                        <h3>Binding</h3>
-                        <pre><code class="ruby">
-def get_binding
-  a = 2
-  b = 3
-  binding
+            </code></pre>
+            <aside class="notes">
+              <div>可以看到，要实现这些，模块必须重定义自身的<code>included</code>方法，当任何类包含这个模块的时候，调用<code>extend</code>方法将定义类方法的模块也包含进去，然后调用该类的<code>class_eval</code>或者<code>class_exec</code>方法才能在类上执行一些代码。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>Concern</h3>
+            <pre><code class="ruby">
+module M
+  extend Concern
+  included do
+    scope :disabled, -> { where(disabled: true) }
+  end
+  module ClassMethods
+    # ...
+  end
 end
-
-eval('puts a + b', get_binding)
-                        </code></pre>
-                    </section>
-                    <section>
-                        <h3>rb_binding_t</h3>
-                        <img src="img/rb_binding_t_initialization.png" height="600" />
-                        <aside class="notes">
-                            As the implementation of *_eval, *_exec, <code>EP</code> in new rb_control_frame_t points to the lower stack frame. So Ruby can access to local variable directly.
-                        </aside>
-                    </section>
-                    <section>
-                        <img src="img/rb_binding_t.png" />
-                        <aside class="notes">
-                            The binding structure is simply a wrapper around the internal environment structure—the heap copy of the stack frame. The binding structure also contains the file name and line number of the loca- tion from where you called binding.
-                        </aside>
-                    </section>
-                </section>
-
-                <section>
-                    <section>
-                        <h1>GC</h1>
-                    </section>
-                    <section>
-                        <h3>Algorithms</h3>
-                        <aside class="notes">
-                            Let's just talk about algorithms.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>MRI</h3>
-                        <h4>mark-and-sweep garbage collection</h4>
-                        <aside class="notes">
-                            Non-Moving strategy
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>RVALUE</h3>
-                        <h4>gc.c</h4>
-                        <img src="img/first_memory_block_token.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>RVALUE as a basic unit</li>
-                                <li>RVALUE: gc.c:325</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Mark</h3>
-                        <img src="img/mri_gc_marking.png" />
-                        <aside class="notes">
-                            MRI has marked five active objects (gray) with five garbage objects remaining in the heap (white).
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Since 2.0, Bitmap Marking</h3>
-                        <img src="img/mri_gc_bitmap_marking.png" />
-                        <aside class="notes">
-                            Since 2.0, because of Unix memory optimization technique "copy on write" when fork.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Sweeping</h3>
-                        <img src="img/mri_gc_sweeping.png" />
-                        <aside class="notes">
-                            While sweeping, MRI places unused RVALUE structures back on the free list.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Since 1.9.3, Lazy Sweeping</h3>
-                        <aside class="notes">
-                            <ul>
-                                <li>Lazy sweeping sweeps only enough garbage objects back to the free list to create a few new Ruby objects and to allow your program to continue</li>
-                                <li>Lazy sweeping can reduce the amount of time your program is paused waiting for garbage collection; however, it doesn’t reduce the overall amount of garbage collection work to do. Lazy sweeping amortizes the same total amount of sweeping work over multiple GC pauses.</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>JRuby &amp; Rubinius</h3>
-                        <h4>copying garbage collection</h4>
-                        <h4>generational garbage collection</h4>
-                        <h4>concurrent garbage collection</h4>
-                    </section>
-                    <section>
-                        <h3>Bump Allocation</h3>
-                        <img src="img/gc_bump_allocation.png" />
-                        <aside class="notes">
-                            Copying garbage collection is the ability to create objects of different sizes
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>The Semi-Space Algorithm</h3>
-                        <img src="img/gc_semi_space_algorithm.png" />
-                        <aside class="notes">
-                            Moving strategy
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Generational Garbage Collection</h3>
-                        <img src="img/gc_promote_old_objects.png" />
-                        <aside class="notes">
-                            JRuby &amp; Rubinius have used it for years. Intrduced into MRI since 2.1.
-                            <ul>
-                                <li>Keywords: minor GC, major GC</li>
-                                <li>Popular Algorithms combination: minor: Copy, major: Mark &amp; Sweep</li>
-                                <li>MRI 2.1: both Mark &amp; Sweep</li>
-                                <li>Promotion: Rubinius: 2, MRI 2.1: 1(limited by Mark &amp; Sweep), JRuby: dynamic</li>
-                                <li>JRuby: another "permanent generation" for internal objects for JVM ifself</li>
-                                <li>Rubinius: Also uses a third generation for very large objects by Mark &amp; Sweep</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Since 2.1, RGenGC</h3>
-                        <h4>Restricted Generational Garbage Collection</h4>
-                        <img src="img/generational_gc_problem.png" />
-                        <aside class="notes">
-                            Problem: Mature object could reference young object.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Write barriers</h3>
-                        <img src="img/gc_write_barries.png" />
-                        <aside class="notes">
-                            Ruby 2.1 uses an old GC technique called write barriers to monitor changes to mature objects – whenever you add a reference from one object to another (whenever you write to or modify an object), a write barrier is triggered. The barriers check whether the source object is mature, and if so adds the mature object to a special list. Later Ruby 2.1 includes these just these modified mature objects in the next mark and sweep process, preventing active, young objects from being incorrectly considered garbage.
-                        </aside>
-                    </section>
-                    <section>
-                        <h3><a href="http://www.ustream.tv/recorded/35107339/highlight/377033">
-                            Koichi’s fascinating presentation from EuRuKo 2013
-                        </a></h3>
-                        <aside class="notes">
-                            Difficult to implement WB in C-ext, watch the video for more details!
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Concurrect Garbage Collection</h3>
-                        <aside class="notes">
-                            <ul>
-                                <li>Run GC on separate thread</li>
-                                <li>Since 2.1, MRI reduce sweeping time by introducing this tech</li>
-                            </ul>
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Marking While the Object Graph Changes</h3>
-                        <img src="img/gc_concurrent_gc_problem.png" />
-                        <aside class="notes">
-                            New object hasn't been marked here, so it'll be GCed!
-                        </aside>
-                    </section>
-                    <section>
-                        <h3>Tricolor Marking</h3>
-                        <img src="img/gc_tricolor_marking.png" />
-                        <aside class="notes">
-                            <ul>
-                                <li>White: haven't been marked, all objects start from here.</li>
-                                <li>Grey: reachable, won't be GCed, but we still need to check any objects that the object references</li>
-                                <li>Black: marked, have no references to objects in the white set, surely won't be GCed</li>
-                                <li>Pick an object from the grey set. Blacken this object (move it to the black set), by greying all the white objects it references directly</li>
-                                <li>Repeat the previous step until the grey set is empty</li>
-                                <li>When there are no more objects in the grey set, then all the objects remaining in the white set will be GCed</li>
-                                <li style="color: red">The collector moves a marked object back to the mark stack because the application modified it.</li>
-                            </ul>
-                        </aside>
-                    </section>
-                </section>
-                <section>
-                    <h1>Thanks!</h1>
-                </section>
+            </code></pre>
+            <aside class="notes">
+              <div>Rails 对于这个问题，定义了一个 Concern 模块，当一个模块<code>extend</code>这个模块的时候，那么任何对于这个模块的包含都会自动添加该模块下<code>ClassMethods</code>的方法作为类方法，还能回调传入<code>included</code>的代码块。相当厉害吧！</div>
+            </aside>
+          </section>
+        </section>
+        <section>
+            <h1>Thanks!</h1>
+        </section>
 			</div>
 		</div>
 
