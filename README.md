@@ -1,17 +1,8 @@
-#Ruby 2.0 under a microscope#
+#Ruby Hacker, Happy Hacker#
 
-![Ruby under a microscope](http://bachue.github.io/ruby-under-a-microscope-introduction-slides/img/cover.png)
+活动主题：七周七语言之Ruby
+活动时间：2014年8月16日 周六 早上9：30
+活动地址：联合创业办公社三期(愚园东路28号，近常德路 东海广场3号楼1楼)
+主办方：上海GDG社区、上海Ruby用户组
 
-- Agenda
-  - Overview
-  - Tokenize
-  - Parsing
-  - Compilation
-  - Execution as double stack machine
-  - Control Structures
-  - Objects &amp; Class
-  - Method Lookup &amp; Constant Lookup
-  - Closure & Binding
-  - GC
-
-[Click to Play the slides](http://bachue.github.io/ruby-under-a-microscope-introduction-slides)
+[Click to Play the slides](http://bachue.github.io/ruby-hacker-happy-hacker-slides)

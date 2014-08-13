@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<title>Ruby under a microscope</title>
+		<title>Ruby Hacker, Happy Hacker</title>
 		<meta name="description" content="Ruby under a microscope introduction">
 		<meta name="author" content="Bachue Zhou">
 
@@ -30,131 +30,196 @@
 		<div class="reveal">
 			<div class="slides">
 				<section>
-					<h1>Ruby 2.0</h1>
-					<h3>Under a Microscope</h3>
+					<h1>Ruby Hacker</h1>
+					<h3>Happy Hacker</h3>
 					<p>
 						<small>Created by <a href="http://bachue.is-programmer.com">Bachue</a> / <a href="http://twitter.com/iBachue">@iBachue</a></small>
 					</p>
-					<aside class="notes">
-                        <ul>
-                            <li>Just a share.</li>
-    						<li>I'll introduce some points in this book to you.</li>
-                            <li>Don't ask me tough questions, I can't answer then. :)</li>
-                        </ul>
-					</aside>
 				</section>
-
-				<section>
-					<a href="http://patshaughnessy.net/ruby-under-a-microscope"><img src="img/cover.png" alt="cover of the book" /></a>
-					<aside class="notes">
-						This book is available to buy on <a href="http://www.nostarch.com/rum">http://www.nostarch.com/rum</a>, price is $31.95, about 200RMB.
-					</aside>
-				</section>
-
-				<section>
-					<img src="img/sanya.jpg" />
-				</section>
-
-				<section>
-					<h3>Who is this book for?</h3>
-					<ul>
-						<li>Ruby programmer</li>
-						<li>No C programming knowledge is required</li>
-					</ul>
-                    <aside class="notes">
-                        <ul>
-                            <li>No Ruby basis explaination in these slides!</li>
-                            <li>Only for Ruby programmer who shows strong interest in Ruby internal!</li>
-                            <li>No C code shown in these slides!</li>
-                        </ul>
-                    </aside>
-				</section>
-                <section>
-                    <a href="http://bachue.github.io/ruby-under-a-microscope-introduction-slides">bachue.github.io/ruby-under-a-microscope-introduction-slides</a>
-                </section>
-                <section>
-                    <h3>Agenda</h3>
-                    <ul>
-                        <li>Overview</li>
-                        <li>Tokenize</li>
-                        <li>Parsing</li>
-                        <li>Compilation</li>
-                        <li>Execution as double stack machine</li>
-                        <li>Control Structures</li>
-                        <li>Objects &amp; Class</li>
-                        <li>Method Lookup &amp; Constant Lookup</li>
-                        <li>Closure &amp; Binding</li>
-                        <li>GC</li>
-                    </ul>
-                    <aside class="notes">
-                        Basically map to each characters in the book, just a little changes.
-                    </aside>
-                </section>
 
 				<section>
 					<section>
-						<h1>Overview</h1>
-						<img src="img/overview.png" />
+						<h1>Elegant Inquery</h1>
                         <aside class="notes">
-                            <div>Tokenize, Parse, Compile =&gt; YARV instruments</div>
-                            <div>Bison: GNU Yacc</div>
+                            <div>首先，让我们从一个最简单的例子开始吧！</div>
                         </aside>
 					</section>
 					<section>
-						<h1>JRuby</h1>
-						<img src="img/jruby-overview.png" />
+                        <h3>Rails.env</h3>
+                        <pre><code class="ruby">
+Rails.env == "production"
+                        </code></pre>
                         <aside class="notes">
+                            <div>在Rails中，有一个环境变量 Rails.env 用来表示当前Rails跑在哪种环境中，一般来说，总共有三种环境：</div>
                             <ul>
-                                <li>Steps are similar, except JVM bytecode is generated</li>
-                                <li>Jay is Bison-like but written in Java</li>
-                                <li>JIT in Java could compile bytecode to machine language</li>
+                                <li>Development</li>
+                                <li>Test</li>
+                                <li>Production</li>
                             </ul>
+                            <div>当我们需要判断当前 Rails 执行在哪种环境中时，我们可以用这样的匹配方法</div>
                         </aside>
 					</section>
                     <section>
-                        <h3>JIT</h3>
-                    </section>
-					<section>
-						<h1>Rubinius</h1>
-						<img src="img/rubinius-overview.png" />
+                        <h3>Rails.env</h3>
+                        <pre><code class="ruby">
+Rails.env.production?
+                        </code></pre>
                         <aside class="notes">
-                            <ul>
-                                <li>Steps are similar, except Rubinius instruments and LLV instruments are generated</li>
-                                <li>Rubinius compile Ruby to Rubinius instruments, and then use LLVM compile them to LLVM instruments, then may compile to machine language by JIT compiler</li>
-                            </ul>
+                            <div>当然 Rails 程序员不喜欢这种写法，他们更倾向于这样更有 Ruby 风格的写法</div>
                         </aside>
-					</section>
+                    </section>
+                    <section>
+                        <h3>How to Implement?</h3>
+                        <aside class="notes">
+                            <div>那么如何实现这种写法呢？</div>
+                            <div>当然，依次定义<code>production?</code>,<code>development?</code>, <code>test?</code>是可以的，但是有没有更加通用的办法？</div>
+                        </aside>
+                    </section>
+                    <section>
+                        <h3>method_missing</h3>
+                        <pre><code class="ruby">
+class StringInquirer &lt; String
+  private def method_missing method_name, *arguments
+    if method_name[-1] == '?'
+      self == method_name[0..-2]
+    else
+      super
+    end
+  end
+end
+                        </code></pre>
+                        <aside class="notes">
+                            <div>在 Ruby 中，任何找不到的方法都会调用 method_missing 方法去解决，这个方法的默认实现总是抛出 NoMethodError 错误，当然你可以覆盖它。</div>
+                            <div>在这里，我们先继承了String类型，由于String的子类可以表现的和它的父类一模一样，因此人们不会注意到 Rails.env 其实返回了另一个类型的实例。然后在这个子类中重写 method_missing 方法，判断找不到的那个方法是否以问号结尾，如果是，将方法名中问号之前的部分取出，与自身做对比，如果不是，调用父类的默认实现，也就是抛出 NoMethodError 错误即可。</div>
+                        </aside>
+                    </section>
+                    <section>
+                        <h3>method_missing</h3>
+                        <pre><code class="ruby">
+class StringInquirer &lt; String
+  private def respond_to_missing? method_name, include_private = false
+    method_name[-1] == '?'
+  end
+end
+
+Rails.env.respond_to? :development? # =&gt; true
+                        </code></pre>
+                        <aside class="notes">
+                            <div>单这样实现还可能有个疏漏，Ruby 允许调用<code>respond_to?</code>方法查询一个方法名是否存在，单单只有<code>method_missing</code>的实现会使得这个查询会失败，因此，Ruby 提供了一个专门用于覆盖的方法<code>respond_to_missing?</code>，它的返回值将影响<code>respond_to?</code>的结果。在这里，我们写成任何以问号结尾的方法总是能查询成功。</div>
+                        </aside>
+                    </section>
 				</section>
 
 				<section>
 					<section>
-						<h1>Tokenize</h1>
-						<pre><code class="ruby">
-10.times do |n|
-  puts n
+						<h1>Elegant Time</h1>
+                        <aside class="notes">
+                            <div>第二个例子来自于 Rails 的优雅的时间计算</div>
+                        </aside>
+					</section>
+					<section>
+						<h3>Elegant Time</h3>
+                        <pre><code class="ruby">
+1.day.ago # => 2014-08-11 22:41:47 +0800
+1.day - 2.hours # => 22 hours
+                        </code></pre>
+                        <aside class="notes">
+                            <div>这是 Rails 中一个十分经典的例子，连 Matz 也表示这样的设计令人震惊。</div>
+                            <div><code>1.day.ago</code>返回一天前的时间，而<code>1.day</code>，<code>2.hours</code>都是可以相互做数学运算的。</div>
+                        </aside>
+					</section>
+					<section>
+						<h3>How to Implement?</h3>
+                        <pre><code class="ruby" style="max-height: inherit;">
+class Numeric
+  def seconds
+    self
+  end
+  alias second seconds
+
+  def minutes
+    self * 60
+  end
+  alias minute minutes
+
+  def hours
+    self * 60.minutes
+  end
+  alias hour hours
+
+  def days
+    self * 24.hours
+  end
+  alias day days
+
+  def ago
+    Time.now - self
+  end
 end
-						</code></pre>
+                        </code></pre>
+                        <aside class="notes">
+                            <div>这也许是一个大家都能最先想到的实现方法，在 Ruby 中，所有的类都是开放的，可以随时修改的，即使是内部类也不例外。</div>
+                            <div>这个代码已经能实现时间计算的基本功能了，但是还存在两个问题：</div>
+                            <ul>
+                                <li>1. 用户可以调用<code>1.ago</code>，返回前一秒的时间，虽然并没有逻辑错误，但是语意是不对的，不熟悉的人可能无法理解这个写法。</li>
+                                <li>2. 案例中的<code>1.day - 2.hours</code>返回 22 hours 这样的功能没有实现，在 Ruby 中，覆盖<code>inspect</code>方法可以修改这个返回值，当然你不能让所有数字以后都返回成这样的样子，即使那些数字并不表示时间。</li>
+                            </ul>
+                            <div>也许大家很容易想到在第一个例子中我们对于字符串采用的办法，先创造一个子类，然后在子类上实现我们所需要的功能。不过这个办法对数字无效，因为数字是一个基本类型，并没有设计可以传入自身值的构造方法，事实上，数字是不能像对象一样在不改变内存地址的前提下改变自身的。</div>
+                        </aside>
 					</section>
 					<section>
-						<h3>Before</h3>
-						<img src="img/before-tokenize.png" />
-					</section>
-					<section>
-						<h3>After</h3>
-						<img src="img/after-tokenize.png" />
-					</section>
-					<section>
-						<h3>parser_yylex in parse.y</h3>
-						<h4>Keywords: defs/keywords</h4>
+						<h3>BlankSlate</h3>
+                        <pre><code class="ruby">
+class BlankSlate &lt; BasicObject
+  undef_method :==
+  undef_method :equal?
+end
+                        </code></pre>
 						<aside class="notes">
-							<p>ruby/parse.y:6933 in `parser_yylex'</p>
-							<p>start from line 6968: <code>switch (c = nextc())</code></p>
-							<p>keywords: rb_reserved_word, defs/keywords => lex.c</p>
-                            <p>MRI doesn't use Lex tokenization tool, but write these code by hand, because of the performance or flexibility.</p>
+                            <div>在这里，我们采用的方法是代理。首先，创造一个几乎没有实现任何方法的 BlankSlate 类。在 Ruby 中，绝大多数类原生就实现了大量方法，即使是 Object 类，也实现了55个方法，这样的类是不能做代理的。幸运的是，Ruby 还有一个比 Object 更基础的类，仅仅实现了必要方法的 BasicObject，这个类在平时不太常用，但是作为 BlankSlate 的基类是十分合适的，只要在 BasicObject 的基础上再移除两个方法即可。</div>
 						</aside>
 					</section>
+                    <section>
+                        <h3>Proxy</h3>
+                        <pre><code class="ruby" style="max-height: inherit;">
+class Duration &lt; BlankSlate
+  def initialize proxy
+    @proxy = proxy
+  end
+
+  def + other
+    ::Duration.new @proxy + other
+  end
+
+  def - other
+    ::Duration.new @proxy - other
+  end
+
+  def -@
+    ::Duration.new -@proxy
+  end
+
+  def ago
+    ::Time.now - @proxy
+  end
+
+  private
+    def method_missing method, *args, &amp;block
+      if %i[day days hour hours minute minutes second seconds].include?(method)
+        super
+      else
+        @proxy.send method, *args, &amp;block
+      end
+    end
+end
+                        </code></pre>
+                        <aside class="notes">
+                            <div>有了 BlankSlate 类，创建它的子类并且定义具有转发功能的<code>method_missing</code>方法即可，由于 BlankSlate 几乎没有实现任何方法，所以几乎总会调用到<code>method_missing</code>，并让被托管的对象来做具体的事情。考虑到实现难度，我们暂时不设计一个无比优雅的Ruby风格的DSL来实现托管功能。</div>
+                            <div>由于数字的运算总是返回数字，而我们希望 Duration 类的实例与数字的计算还是返回一个 Duration 的实例，因此我们覆盖了<code>+</code>，<code>-</code>和负数的运算实现（这里需要注意 Ruby 是支持运算符重载的），然后把<code>ago</code>的实现搬过来，这样<code>1.ago</code>就会返回 NoMethodError 错误而<code>1.day.ago</code>还能正确运行了。另外为了防止类似于<code>1.day.minute</code>这样错误语意的代码，我们要求<code>method_missing</code>不转发这些方法。</div>
+                        </aside>
+                    </section>
 					<section>
-						<h3>Ripper.tokenize &amp; Ripper.lex</h3>
+						<h3></h3>
 						<pre><code class="ruby">
 require 'ripper'
 require 'pp'
