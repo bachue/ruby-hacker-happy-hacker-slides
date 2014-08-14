@@ -36,7 +36,7 @@
 						<small>Created by <a href="http://bachue.is-programmer.com">Bachue</a> / <a href="http://twitter.com/iBachue">@iBachue</a></small>
 					</p>
           <aside class="notes">
-            <div>本Slides从 Rails ActiveSupport 库中采集大量有意思的Hack例子并为大家讲解，主要是让大家对 Ruby 元编程的代码和效果有个初步的印象。虽然源于 Rails 却并没有照搬照抄 Rails 的实现，一方面是为了便于讲解，省去大量无意义的细节，一方面也觉得 Rails 的实现也并非完美，也不够有趣。</div>
+            <div>本Slides从 Rails ActiveSupport 库中采集大量有意思的Hack例子并为大家讲解，主要是让大家对 Ruby 元编程的代码和效果有个初步的印象。虽然源于 Rails 却并没有照搬照抄 Rails 的实现，一方面是为了便于讲解，省去大量无意义的细节，一方面也觉得 Rails 的实现也并非完美，也不够有趣，而且 Rails 4 为了考虑到兼容性，没有使用很多 Ruby 新版本的特性。</div>
           </aside>
 				</section>
 
@@ -288,7 +288,7 @@ class C
 end
 						</code></pre>
 						<aside class="notes">
-              <div>在现有的 Ruby 中，让一个 Module 既能为一个类添加事例方法，也能添加类方法并不容易，因为这在 Ruby 中是两种不同操作，需要调用两种不同方法才能实现。如果还希望模块在被包含后能调用类方法做些初始化工作就更加困难了。</div>
+              <div>在现有的 Ruby 中，让一个 Module 既能为一个类添加事例方法，也能添加类方法并不容易，因为这在 Ruby 中是两种不同操作，<code>include</code>将模块中的方法作为实例方法载入，而<code>extend</code>将方法作为类方法载入，这需要调用两种不同方法才能实现。如果还希望模块在被包含后能调用类方法做些初始化工作就更加困难了。</div>
 						</aside>
 					</section>
           <section>
@@ -298,7 +298,7 @@ module M
   def self.included(base)
     base.extend ClassMethods
     base.class_eval do
-      scope :disabled, -> { where(disabled: true) }
+      scope :disabled, -&gt; { where(disabled: true) }
     end
   end
   module ClassMethods
@@ -307,7 +307,7 @@ module M
 end
             </code></pre>
             <aside class="notes">
-              <div>可以看到，要实现这些，模块必须重定义自身的<code>included</code>方法，当任何类包含这个模块的时候，调用<code>extend</code>方法将定义类方法的模块也包含进去，然后调用该类的<code>class_eval</code>或者<code>class_exec</code>方法才能在类上执行一些代码。</div>
+              <div>可以看到，要实现这些，模块必须重定义自身的<code>included</code>方法，当任何类包含这个模块的时候，<code>included</code>方法将被回调，并传入包含它的类作为参数，<code>included</code>随后调用类的<code>extend</code>方法将定义类方法的模块也包含进去，然后调用该类的<code>class_eval</code>或者<code>class_exec</code>方法才能在类上执行一些代码。</div>
             </aside>
           </section>
           <section>
@@ -316,7 +316,7 @@ end
 module M
   extend Concern
   included do
-    scope :disabled, -> { where(disabled: true) }
+    scope :disabled, -&gt; { where(disabled: true) }
   end
   module ClassMethods
     # ...
@@ -324,11 +324,68 @@ module M
 end
             </code></pre>
             <aside class="notes">
-              <div>Rails 对于这个问题，定义了一个 Concern 模块，当一个模块<code>extend</code>这个模块的时候，那么任何对于这个模块的包含都会自动添加该模块下<code>ClassMethods</code>的方法作为类方法，还能回调传入<code>included</code>的代码块。相当厉害吧！</div>
+              <div>Rails 对于这个问题，定义了一个 Concern 模块，当一个模块<code>extend</code>这个模块的时候，那么任何对于这个模块的包含都会自动添加该模块下<code>ClassMethods</code>的方法作为类方法，还能回调传入<code>included</code>的block。相当厉害吧！</div>
+            </aside>
+          </section>
+          <section>
+            <h3>How to Implement?</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+module Concern
+  def self.extended base
+    base.instance_variable_set(:@_dependencies, [])
+  end
+
+  def included base = nil, &amp;block
+    if base.nil?
+      @_included_blocks ||= [] # Initialize
+      @_included_blocks &lt;&lt; block
+    else
+      super
+    end
+  end
+
+  def append_features base
+    if base.instance_variable_defined?(:@_dependencies)
+      base.instance_variable_get(:@_dependencies) &lt;&lt; self
+      return false
+    else
+      return false if base &lt; self
+      @_dependencies.each { |dep| base.send(:include, dep) }
+      super
+      base.extend const_get(:ClassMethods) if const_defined?(:ClassMethods)
+      if instance_variable_defined?(:@_included_blocks)
+        @_included_blocks.each {|block| base.class_eval(&amp;block) }
+      end
+    end
+  end
+end
+            </code></pre>
+            <aside class="notes">
+              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖，当一个<code>extend</code>Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
+              <div><code>super</code>将调用<code>append_features</code>的默认实现，完成<code>include</code>一个模块的主要工作。</div>
+              <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块，就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
+              <div><code>included</code>原本是 Module 本身的回调函数，Concern 覆盖了其实现，使得它还可以接受一个block，<code>included</code>记录每一个 block，当模块被包含的时候，所有 block 都将被传入类的 class_eval 执行。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>class_eval</h3>
+            <h3>module_eval</h3>
+            <h3>instance_eval</h3>
+            <aside class="notes">
+              <div>Ruby 分<code>class_eval</code>，<code>module_eval</code>和<code>instance_eval</code>，都代表在上下文环境内执行一段代码，其中<code>class_eval</code>将代码在类环境下执行，<code>module_eval</code>将代码在 Module 环境下执行，<code>instance_eval</code>将方法在实例环境下执行。</div>
+              <div>只有类和 Module 才拥有<code>class_eval</code>和<code>module_eval</code>方法，在里面执行代码和将代码写在他们的类定义里是等效的，比如说，如果你在里面定义的方法就会被当做实例方法的定义。而<code>instance_eval</code>所有实例都有，连类也有，因为类也是 Class 类的对象嘛。在里面执行代码相当于在它的 singleton_class 里执行代码，如果你在一个类的<code>instance_eval</code>里定义方法就会被当做类方法。</div>
             </aside>
           </section>
         </section>
-        <section>
+<!--         <section>
+          <section>
+            <h1>Elegant Time</h1>
+            <aside class="notes">
+              <div>第二个例子来自于 Rails 的优雅的时间计算</div>
+            </aside>
+          </section>
+        </section>
+ -->        <section>
             <h1>Thanks!</h1>
         </section>
 			</div>
