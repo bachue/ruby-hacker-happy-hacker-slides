@@ -660,7 +660,9 @@ def load_missing_constant(from_mod, const_name)
   if file_path
     expanded = File.expand_path(file_path).sub(/\.rb\z/, '')
     require_or_load(expanded, qualified_name)
-    raise LoadError, "Unable to autoload constant #{qualified_name}, expected #{file_path} to define it" unless from_mod.const_defined?(const_name, false)
+    unless from_mod.const_defined?(const_name, false)
+      raise LoadError, "Unable to autoload constant #{qualified_name}, expected #{file_path} to define it"
+    end
     return from_mod.const_get(const_name)
   elsif mod = autoload_module!(from_mod, const_name, qualified_name, path_suffix)
     return mod
