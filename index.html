@@ -398,7 +398,7 @@ end
             <aside class="notes">
               <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上动态添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖（实例变量，类变量都是能够自由增删改查的哦），当一个<code>extend</code>了Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
               <div><code>super</code>将调用<code>append_features</code>的默认实现，完成<code>include</code>一个模块的主要工作。</div>
-              <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块（查询模块的方法是<code>const_defined?</code>，取出模块的方法是<code>const_get</code>），就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
+              <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块（查询模块的方法是<code>const_defined?</code>，取出模块的方法是<code>const_get</code>, instance 部分也是类似的方法名设计），就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
               <div><code>included</code>原本是 Module 本身的回调函数，Concern 覆盖了其实现，使得它还可以接受一个block，<code>included</code>记录每一个 block，当模块被包含的时候，所有 block 都将被传入类的 class_eval 执行。</div>
             </aside>
           </section>
