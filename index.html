@@ -525,12 +525,9 @@ end
 class Class
   def hook hook_method
     match = hook_method.to_s.match(/^(before|around|after)_(.+)$/)
+    raise 'Hook method must start with before, around or after' unless match
     type, method_name = match[1].to_sym, match[2]
     feature = "#{type}_#{SecureRandom.hex 8}__"
-
-    unless %i[before after around].include?(type)
-      raise 'Hook method must start with before, around or after'
-    end
 
     alias_method_chain method_name, feature do |method_name, punctuation|
       define_method "#{method_name}_with_#{feature}#{punctuation}" do |*args, &amp;block|
@@ -690,7 +687,7 @@ end
              “There’s no such thing as metaprogramming. It’s just programming all the way through.”
           </blockquote>
           <aside class="notes">
-            <div>看完了这些实例，大家有些疑问和不解都是正常的。元编程初看之下总是令人惊叹不已，再看看就会陷入迷茫，反复思索反复探索才能豁然开朗，世界上其实没有什么元编程，有的只是编程而已。</pre>
+            <div>看完了这些实例，大家有些疑问和不解都是正常的。元编程初看之下总是令人惊叹不已，再看看就会陷入迷茫，反复思索反复探索才能豁然开朗，世界上其实没有什么元编程，有的只是编程而已。</div>
           </aside>
         </section>
         <section>
