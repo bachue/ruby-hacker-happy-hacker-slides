@@ -262,17 +262,17 @@ class Numeric
   alias second seconds
 
   def minutes
-    Duration.new(self * 60)
+    Duration.new self * 60.seconds
   end
   alias minute minutes
 
   def hours
-    Duration.new(self * 60.minutes)
+    Duration.new self * 60.minutes
   end
   alias hour hours
 
   def days
-    Duration.new(self * 24.hours)
+    Duration.new self * 24.hours
   end
   alias day days
 end
