@@ -127,8 +127,8 @@ class StringInquirer &lt; String
 end
             </code></pre>
             <aside class="notes">
-              <div>在 Ruby 中，任何找不到的方法都会调用 method_missing 方法去解决，这个方法的默认实现总是抛出 NoMethodError 错误，当然你可以覆盖它。</div>
-              <div>在这里，我们先继承了String类型，由于String的子类可以表现的和它的父类一模一样，因此人们不会注意到 Rails.env 其实返回了另一个类型的实例。然后在这个子类中重写 method_missing 方法，判断找不到的那个方法是否以问号结尾，如果是，将方法名中问号之前的部分取出，与自身做对比，如果不是，调用父类的默认实现，也就是抛出 NoMethodError 错误即可。</div>
+              <div>在 Ruby 中，任何找不到的方法都会调用<code>method_missing</code>方法（传入找不到的那个方法的名字以及传入的参数）去解决，这个方法的默认实现总是抛出 NoMethodError 错误，当然你可以覆盖它。</div>
+              <div>在这里，我们先继承了String类型，由于String的子类可以表现的和它的父类一模一样，因此人们不会注意到 Rails.env 其实返回了另一个类型的实例。然后在这个子类中重写<code>method_missing</code>方法，判断找不到的那个方法是否以问号结尾，如果是，将方法名中问号之前的部分取出，与自身做对比，如果不是，调用父类的默认实现，也就是抛出 NoMethodError 错误即可。</div>
             </aside>
           </section>
           <section>
@@ -248,7 +248,7 @@ class Duration &lt; BlankSlate
 end
             </code></pre>
             <aside class="notes">
-              <div>有了 BlankSlate 类，创建它的子类并且定义具有转发功能的<code>method_missing</code>方法即可，由于 BlankSlate 几乎没有实现任何方法，所以几乎总会调用到<code>method_missing</code>，并让被托管的对象来做具体的事情。考虑到实现难度，我们暂时不设计一个无比优雅的Ruby风格的DSL来实现托管功能。</div>
+              <div>有了 BlankSlate 类，创建它的子类并且定义具有转发功能的<code>method_missing</code>方法即可，由于 BlankSlate 几乎没有实现任何方法，所以几乎总会调用到<code>method_missing</code>，并让被托管的对象来做具体的事情，由于我们不知道届时会有什么方法被调用，因此直接将传入的方法名和参数调用被托管对象的<code>send</code>方法直接转发出去即可。考虑到实现难度，我们暂时不设计一个无比优雅的Ruby风格的DSL来实现托管功能。</div>
               <div>由于数字的运算总是返回数字，而我们希望 Duration 类的实例与数字的计算还是返回一个 Duration 的实例，因此我们覆盖了<code>+</code>，<code>-</code>和负数的运算实现（这里需要注意 Ruby 是支持运算符重载的），然后把<code>ago</code>的实现搬过来，这样<code>1.ago</code>就会返回 NoMethodError 错误而<code>1.day.ago</code>还能正确运行了。</div>
             </aside>
           </section>
@@ -396,9 +396,9 @@ module Concern
 end
             </code></pre>
             <aside class="notes">
-              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上动态添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖，当一个<code>extend</code>了Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
+              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上动态添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖（实例变量，类变量都是能够自由增删改查的哦），当一个<code>extend</code>了Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
               <div><code>super</code>将调用<code>append_features</code>的默认实现，完成<code>include</code>一个模块的主要工作。</div>
-              <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块，就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
+              <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块（查询模块的方法是<code>const_defined?</code>，取出模块的方法是<code>const_get</code>），就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
               <div><code>included</code>原本是 Module 本身的回调函数，Concern 覆盖了其实现，使得它还可以接受一个block，<code>included</code>记录每一个 block，当模块被包含的时候，所有 block 都将被传入类的 class_eval 执行。</div>
             </aside>
           </section>
@@ -551,7 +551,7 @@ class Class
 end
             </code></pre>
             <aside class="notes">
-              <div>至于实现我们根据注入方式直接动态生成了一个方法，利用 Rails 的<code>alias_method_chain</code>注入进去，这段代码非常简单，想比大家都能看懂。</div>
+              <div>至于实现我们根据注入方式直接动态生成了一个方法（调用<code>define_method</code>，传入方法名的字符串，就可以动态定义方法了），利用 Rails 的<code>alias_method_chain</code>注入进去，这段代码主要展示了 Ruby 动态定义方法的技巧，本身逻辑非常简单，想比大家都能看懂。</div>
             </aside>
           </section>
         </section>
@@ -613,7 +613,7 @@ Companies::CloudComputing::EMC &lt;=&gt; "companies/cloud_computing/emc.rb"
   paths.add "vendor/assets",       glob: "*"
             </code></pre>
             <aside class="notes">
-              Rails 参照了 Ruby 的<code>$LOAD_PATH</code>设计了自己的<code>autoload_paths</code>，Slides 上展示了 Rails 内部对于目录的定义，其中我们可以看到部分目录被标示了<code>eager_load: true</code>，这表示这些目录中的所有 Ruby 文件在生产环境服务器启动的时候全部加载（也可以配成懒加载），在开发环境下则是自动懒加载，但是在开发者看起来就像已经全部加载了一样，全部加载没啥技术含量，而懒加载才是比较有意思的部分，也是我们主要讲解的部分。
+              Rails 参照了 Ruby 的<code>$LOAD_PATH</code>设计了自己的<code>autoload_paths</code>，Slides 上展示了 Rails 内部对于目录的定义的代码，其中我们可以看到部分目录被标示了<code>eager_load: true</code>，这表示这些目录中的所有 Ruby 文件在生产环境服务器启动的时候全部加载（也可以配成懒加载），在开发环境下则是自动懒加载，但是在开发者看起来就像已经全部加载了一样，全部加载没啥技术含量，而懒加载才是比较有意思的部分，也是我们主要讲解的部分。
             </aside>
           </section>
           <section>
