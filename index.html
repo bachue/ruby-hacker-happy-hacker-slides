@@ -215,7 +215,7 @@ class BlankSlate &lt; BasicObject
 end
               </code></pre>
 						<aside class="notes">
-              <div>在这里，我们采用的方法是代理。首先，创造一个几乎没有实现任何方法的 BlankSlate 类。在 Ruby 中，绝大多数类原生就实现了大量方法，即使是 Object 类，也实现了55个方法，这样的类是不能做代理的。幸运的是，Ruby 还有一个比 Object 更基础的类，仅仅实现了必要方法的 BasicObject，这个类在平时不太常用，但是作为 BlankSlate 的基类是十分合适的，只要在 BasicObject 的基础上再移除两个方法即可。</div>
+              <div>在这里，我们采用的方法是代理。首先，创造一个几乎没有实现任何方法的 BlankSlate 类。在 Ruby 中，绝大多数类原生就实现了大量方法，即使是 Object 类，也实现了55个方法，这样的类是不能做代理的。幸运的是，Ruby 还有一个比 Object 更基础的类，仅仅实现了必要方法的 BasicObject，这个类在平时不太常用，但是作为 BlankSlate 的基类是十分合适的，只要在 BasicObject 的基础上再移除两个方法即可（注意 Ruby 不仅能动态添加方法，还能动态删除方法）。</div>
 						</aside>
 					</section>
           <section>
@@ -396,7 +396,7 @@ module Concern
 end
             </code></pre>
             <aside class="notes">
-              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖，当一个<code>extend</code>了Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
+              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上动态添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖，当一个<code>extend</code>了Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
               <div><code>super</code>将调用<code>append_features</code>的默认实现，完成<code>include</code>一个模块的主要工作。</div>
               <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块，就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
               <div><code>included</code>原本是 Module 本身的回调函数，Concern 覆盖了其实现，使得它还可以接受一个block，<code>included</code>记录每一个 block，当模块被包含的时候，所有 block 都将被传入类的 class_eval 执行。</div>
@@ -632,7 +632,7 @@ module ParentLexicalScope
 end
             </code></pre>
             <aside class="notes">
-              <div>再普及下 Ruby 搜索常量的方法，Ruby 搜索常量是从其出现的位置（称为Scope）出发，沿着Scope从内向外逐个搜索，如果都找不到，则回到原点，沿着父类从下向上搜索，如果还是找不到，调用其出现位置所在的常量（可能是类也可能是模块）的const_missing方法。</div>
+              <div>再普及下 Ruby 搜索常量的方法，Ruby 搜索常量是从其出现的位置（称为Scope）出发，沿着Scope从内向外逐个搜索，如果都找不到，则回到原点，沿着父类从下向上搜索，如果还是找不到，调用其出现位置所在的常量（可能是类也可能是模块）的const_missing方法(默认实现同样是抛出 NameError)。</div>
               <div>在上面的例子中，我们在<code>SubClass</code>中遭遇到<code>FIND_ME</code>这个常量，Ruby 首先会搜索其所在位置<code>SubClass</code>，检测<code>SubClass::FIND_ME</code>的存在性，找不到的话，搜索外部的<code>ParentLexicalScope</code>，检测<code>ParentLexicalScope::FIND_ME</code>的存在性，如果还是找不到，搜索 TOPLEVEL，也就是<code>::FIND_ME</code>，还是找不到的话，搜索父类<code>SuperClass</code>，如果依然找不到，调用<code>SubClass</code>的<code>const_missing</code>方法。</div>
               <div>对于被明确声明了相对路径或者绝对路径的常量，例如<code>Companies::CloudComputing::EMC</code>，则先搜索<code>Companies</code>，然后在<code>Companies</code>里搜索<code>CloudComputing</code>（这种情况下如果找不到就无需尝试，直接报错），然后在<code>Companies::CloudComputing</code>里搜索<code>EMC</code>。</div>
             </aside>
@@ -678,7 +678,7 @@ end
             </code></pre>
             <aside class="notes">
               <div>这个方法就是加载<code>常量</code>的最主要方法了，首先<code>from_mod</code>是<code>const_missing</code>发生时的所在类或者模块，而<code>const_name</code>就是需要加载的常量的名字。</div>
-              <div>一开始将当前模块或类的名字和所需要加载的常量的名字合并，中间用双冒号连接，猜测这可能是该常量的绝对路径，调用<code>underscore</code>方法将帕斯卡命名转换成 Rails 约定的下划线命名后，猜测这可能是定义该常量的文件路径，然后调用<code>search_for_file</code>，<code>search_for_file</code>遍历所有前面被标示成<code>eager_load</code>的目录，就像 Ruby 搜索<code>$LOAD_PATH</code>一样，如果找到的话，调用<code>require_or_load</code>，在 Ruby 中，<code>require</code>表示一个文件只加载一次，<code>load</code>允许文件反复被加载。<code>require_or_load</code>是 Rails 定义的函数，如果当前是开发环境下，就调用<code>load</code>使文件一旦发生修改就可以被再次加载，如果当前是生产环境就调用<code>require</code>阻止文件被反复加载。如果加载文件后依然找不到该常量，则认为这个文件没有符合 Rails 约定，报错。否则返回该常量即可。如果找不到文件，有可能是个目录，将再次搜索，如果能找到，就创建一个空模块返回回去，这种情况通常是为了进一步搜索目录下的源码文件。如果依然找不到，并且条件判断认为<code>from_mod</code>的外层 scope 可能包含所要找的常量，则递归调用外层 Scope 的同名方法。否则报错。</div>
+              <div>一开始将当前模块或类的名字和所需要加载的常量的名字合并，中间用双冒号连接，猜测这可能是该常量的绝对路径，调用<code>underscore</code>方法将帕斯卡命名转换成 Rails 约定的下划线命名后，猜测这可能是定义该常量的文件路径，然后调用<code>search_for_file</code>，<code>search_for_file</code>遍历所有前面被标示成<code>eager_load</code>的目录，就像 Ruby 搜索<code>$LOAD_PATH</code>一样，如果找到的话，调用<code>require_or_load</code>，在 Ruby 中，<code>require</code>表示一个文件只加载一次，<code>load</code>允许文件反复被加载。<code>require_or_load</code>是 Rails 定义的函数，如果当前是开发环境下，就调用<code>load</code>使文件一旦发生修改就可以被再次加载，如果当前是生产环境就调用<code>require</code>阻止文件被反复加载。如果加载文件后依然找不到该常量，则认为这个文件没有符合 Rails 约定，报错。否则返回该常量即可。如果找不到文件，有可能是个目录，将再次搜索，如果能找到，就创建一个空模块返回回去，这种情况通常是为了进一步搜索目录下的源码文件，因此需要一个空模块给这些定义在目录下的类充当名字空间。如果依然找不到，并且条件判断认为<code>from_mod</code>的外层 Scope 可能包含所要找的常量，则递归调用外层 Scope 的同名方法。否则报错。</div>
             </aside>
           </section>
         </section>
