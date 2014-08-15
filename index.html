@@ -523,8 +523,8 @@ end
             <h3>How to Implement?</h3>
             <pre><code class="ruby" style="max-height: inherit;">
 class Class
-  def hook method
-    match = method.to_s.match(/^(before|around|after)_(.+)$/)
+  def hook hook_method
+    match = hook_method.to_s.match(/^(before|around|after)_(.+)$/)
     type, method_name = match[1].to_sym, match[2]
     feature = "#{type}_#{SecureRandom.hex 8}__"
 
@@ -537,13 +537,13 @@ class Class
         old_method = "#{method_name}_without_#{feature}#{punctuation}"
         case type
         when :before
-          send method, *args, &amp;block
+          send hook_method, *args, &amp;block
           send old_method, *args, &amp;block
         when :after
           send old_method, *args, &amp;block
-          send method, *args, &amp;block
+          send hook_method, *args, &amp;block
         when :around
-          send(method, *args) {|*args, &amp;block| send old_method, *args, &amp;block }
+          send(hook_method, *args) {|*args, &amp;block| send old_method, *args, &amp;block }
         end
       end
     end
