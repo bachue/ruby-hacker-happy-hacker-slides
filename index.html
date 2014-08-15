@@ -423,21 +423,21 @@ end
           <section>
             <h3>AOP in Ruby</h3>
             <pre><code class="ruby">
-class Database
-  def execute sql
+class Bachue
+  def program code
     # ...
   end
 end
 
-class Database
-  def execute_with_log sql
-    log.info "begin ..."
-    execute_without_log sql
-    log.info "end ..."
+class Bachue
+  def program_with_coffee code
+    log.info "start drinking ..."
+    program_without_coffee code
+    log.info "end drinking."
   end
 
-  alias execute_without_log execute
-  alias execute execute_with_log
+  alias program_without_coffee program
+  alias program program_with_coffee
 end
             </code></pre>
             <aside class="notes">
@@ -447,20 +447,20 @@ end
           <section>
             <h3>AOP in Rails</h3>
             <pre><code class="ruby">
-class Database
-  def execute sql
+class Bachue
+  def program code
     # ...
   end
 end
 
-class Database
-  def execute_with_log sql
-    log.info "begin ..."
-    execute_without_log sql
-    log.info "end ..."
+class Bachue
+  def program_with_coffee code
+    log.info "start drinking ..."
+    program_without_coffee code
+    log.info "end drinking."
   end
 
-  alias_method_chain :execute, :log
+  alias_method_chain :program, :coffee
 end
             </code></pre>
             <aside class="notes">
@@ -499,24 +499,24 @@ end
           <section>
             <h3>Do more</h3>
             <pre><code class="ruby">
-class Database
-  hook def before_execute sql
-    puts '&lt;'
+class Bachue
+  hook def before_program code
+    puts 'start drinking ...'
   end
 
-  hook def after_execute sql
-    puts '&gt;'
+  hook def after_program code
+    puts 'end drinking.'
   end
 
-  hook def around_execute sql
-    puts '&lt;&lt;'
-    yield sql
-    puts '&gt;&gt;'
+  hook def around_program code
+    puts 'start coding ...'
+    yield code
+    puts 'end coding.'
   end
 end
             </code></pre>
             <aside class="notes">
-              <div>现在让我们把事情变得更有趣点，这里我们自己设计了一个更优雅的代码注入，无需额外声明，仅仅通过函数名来判定注入的目标和位置。对于 around 注入，则使用 Ruby 本身的关键字<code>yield</code>而不是什么什么 without 什么什么来调用。</div>
+              <div>现在让我们把事情变得更有趣点，这里我们自己设计了一个更优雅的代码注入，无需额外声明，仅仅通过函数名来判定注入的目标和位置（前半部分表示注入的位置，后半部分表示注入的目标）。对于 around 注入，则使用 Ruby 本身的关键字<code>yield</code>而不是什么什么 without 什么什么来调用。</div>
             </aside>
           </section>
           <section>
