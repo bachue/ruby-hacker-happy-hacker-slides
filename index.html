@@ -614,7 +614,7 @@ Companies::CloudComputing::EMC &lt;=&gt; "companies/cloud_computing/emc.rb"
   paths.add "vendor/assets",       glob: "*"
             </code></pre>
             <aside class="notes">
-              Rails 参照了 Ruby 的<code>$LOAD_PATH</code>设计了自己的<code>autoload_paths</code>，Slides 上展示了 Rails 内部对于目录的定义的代码，其中我们可以看到部分目录被标示了<code>eager_load: true</code>，这表示这些目录中的所有 Ruby 文件在生产环境服务器启动的时候全部加载（也可以配成懒加载），在开发环境下则是自动懒加载，但是在开发者看起来就像已经全部加载了一样，全部加载没啥技术含量，而懒加载才是比较有意思的部分，也是我们主要讲解的部分。
+              Rails 参照了 Ruby 的<code>$LOAD_PATH</code>设计了自己的<code>autoload_paths</code>，Slides 上展示了 Rails 内部对于目录的定义的代码，其中我们可以看到部分目录被标示了<code>eager_load: true</code>，这表示这些目录中的所有 Ruby 文件在生产环境服务器启动的时候全部加载（也可以配成懒加载），在开发环境下则是自动懒加载(autoload_paths的含义其实就是自动懒加载)，但是在开发者看起来就像已经全部加载了一样，全部加载没啥技术含量，而懒加载才是比较有意思的部分，也是我们主要讲解的部分。
             </aside>
           </section>
           <section>
