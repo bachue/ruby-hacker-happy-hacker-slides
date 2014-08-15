@@ -280,7 +280,7 @@ end
         </section>
         <section>
 					<section>
-						<h3>Module Include &amp; Extend</h3>
+						<h1>Module<br />Include &amp; Extend</h1>
 						<pre><code class="ruby">
 class C
   include M
@@ -337,7 +337,7 @@ module Concern
 
   def included base = nil, &amp;block
     if base.nil?
-      @_included_blocks ||= [] # Initialize
+      @_included_blocks ||= []
       @_included_blocks &lt;&lt; block
     else
       super
@@ -377,15 +377,150 @@ end
             </aside>
           </section>
         </section>
-<!--         <section>
+        <section>
           <section>
-            <h1>Elegant Time</h1>
+            <h1>Aspect-oriented programming</h1>
             <aside class="notes">
-              <div>第二个例子来自于 Rails 的优雅的时间计算</div>
+              <div>切面编程，简称AOP。意为在不修改接口也不修改内部实现的前提下，向其注入代码的技术。</div>
+              <div>AOP 在 Java 中被提及得较多，也存在多种实现，但是都没有像 Ruby 中这么简单。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>AOP in Ruby</h3>
+            <pre><code class="ruby">
+class Database
+  def execute sql
+    # ...
+  end
+end
+
+class Database
+  def execute_with_log sql
+    log.info "begin ..."
+    execute_without_log sql
+    log.info "end ..."
+  end
+
+  alias execute_without_log execute
+  alias execute execute_with_log
+end
+            </code></pre>
+            <aside class="notes">
+              <div>这是最基本的 Ruby 实现 AOP 的技巧，利用 Ruby 可以轻易打开类并覆盖方法的能力，通过两次<code>alias</code>即可实现。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>AOP in Rails</h3>
+            <pre><code class="ruby">
+class Database
+  def execute sql
+    # ...
+  end
+end
+
+class Database
+  def execute_with_log sql
+    log.info "begin ..."
+    execute_without_log sql
+    log.info "end ..."
+  end
+
+  alias_method_chain :execute, :log
+end
+            </code></pre>
+            <aside class="notes">
+              <div>Rails 对两次调用 alias 进行了封装，并对命名规则做出了约束，使得这一过程更加简单和标准。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>How to Implement?</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+class Class
+  def alias_method_chain(target, feature)
+    aliased_target, punctuation = target.to_s.sub(/([?!=])$/, ''), $1
+    yield aliased_target, punctuation if block_given?
+
+    with_method = "#{aliased_target}_with_#{feature}#{punctuation}"
+    without_method = "#{aliased_target}_without_#{feature}#{punctuation}"
+
+    alias_method without_method, target
+    alias_method target, with_method
+
+    case
+    when public_method_defined?(without_method)
+      public target
+    when protected_method_defined?(without_method)
+      protected target
+    when private_method_defined?(without_method)
+      private target
+    end
+  end
+end
+            </code></pre>
+            <aside class="notes">
+              <div>这是 Rails 中 alias_method_chain 的实现，出于通用的目的，额外考虑了函数名用符号结尾的情况，以及函数权限管理。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>Do more</h3>
+            <pre><code class="ruby">
+class Database
+  hook def before_execute sql
+    puts '&lt;'
+  end
+
+  hook def after_execute sql
+    puts '&gt;'
+  end
+
+  hook def around_execute sql
+    puts '&lt;&lt;'
+    yield sql
+    puts '&gt;&gt;'
+  end
+end
+            </code></pre>
+            <aside class="notes">
+              <div>现在让我们把事情变得更有趣点，这里我们自己设计了一个更优雅的代码注入，无需额外声明，仅仅通过函数名来判定注入的目标和位置。对于 around 注入，则使用 Ruby 本身的关键字<code>yield</code>而不是什么什么 without 什么什么来调用。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>How to Implement?</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+class Class
+  def hook method
+    match = method.to_s.match(/^(before|around|after)_(.+)$/)
+    type, method_name = match[1].to_sym, match[2]
+    feature = "#{type}_#{SecureRandom.hex 8}__"
+
+    unless %i[before after around].include?(type)
+      raise 'Hook method must start with before, around or after'
+    end
+
+    alias_method_chain method_name, feature do |method_name, punctuation|
+      define_method "#{method_name}_with_#{feature}#{punctuation}" do |*args, &amp;block|
+        old_method = "#{method_name}_without_#{feature}#{punctuation}"
+        case type
+        when :before
+          send method, *args, &amp;block
+          send old_method, *args, &amp;block
+        when :after
+          send old_method, *args, &amp;block
+          send method, *args, &amp;block
+        when :around
+          send(method, *args) {|*args, &amp;block| send old_method, *args, &amp;block }
+        end
+      end
+    end
+  end
+end
+            </code></pre>
+            <aside class="notes">
+              <div>至于实现我们根据注入方式直接动态生成了一个方法，利用 Rails 的<code>alias_method_chain</code>注入。</div>
             </aside>
           </section>
         </section>
- -->        <section>
+        <section>
             <h1>Thanks!</h1>
         </section>
 			</div>
