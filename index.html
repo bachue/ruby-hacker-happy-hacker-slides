@@ -35,11 +35,46 @@
 					<p>
 						<small>Created by <a href="http://bachue.is-programmer.com">Bachue</a> / <a href="http://twitter.com/iBachue">@iBachue</a></small>
 					</p>
+        </section>
+        <section>
+          <h1>Why are rubyists happy?</h1>
           <aside class="notes">
-            <div>本Slides从 Rails ActiveSupport 库中采集大量有意思的Hack例子并为大家讲解，主要是让大家对 Ruby 元编程的代码和效果有个初步的印象。虽然源于 Rails 却并没有照搬照抄 Rails 的实现，一方面是为了便于讲解，省去大量无意义的细节，一方面也觉得 Rails 的实现也并非完美，也不够有趣，而且 Rails 4 为了考虑到兼容性，没有使用很多 Ruby 新版本的特性。</div>
+            <div>为什么 Ruby 给程序员带来快乐？</div>
+          </aside>
+        </section>
+        <section>
+          <h1>DSL</h1>
+          <h1>DRY</h1>
+          <aside class="notes">
+            <ol>
+              <li>梦幻般的 DSL 得益于元编程强有力的支持和 Ruby 本身优雅的语法（相比 Java 只有反射和繁琐的语法，所以 Java 程序员都只能写 XML）</li>
+              <li>没有重复劳作 同样得益与元编程的强大，大量繁琐而重复的逻辑优美抽象的 DSL 封装了起来</li>
+            </ol>
+          </aside>
+        </section>
+        <section>
+          <h1>Metaprogramming</h1>
+          <blockquote>“Metaprogramming is writing code that writes code.”</blockquote>
+          <aside class="notes">
+            <div>什么是元编程?</div>
+            <div>元编程就是用代码来写代码。</div>
+            <div>作为解释型语言，Ruby 所有对象，无论是原生提供还是第三方引入，无论是对象的行为还是状态，都能在运行时发生修改，既可以是通过类批量修改，也可以是某些对象的部分修改，而元编程是这一切发生的入口。</div>
+          </aside>
+        </section>
+        <section>
+          <h1>Metaproramming Show</h1>
+          <aside class="notes">
+            <div>当然，我们今天并不会做一个元编程讲座</div>
+            <div>我们会提到大量来自 Rails 的实例，但也不是一个 Rails 讲座（Rails讲座还是放到七周七框架活动中去讲吧，如果有的话）</div>
+            <div>我们今天只是做一个元编程的 Show，我们将从 Rails ActiveSupport 库中精选大量有意思的元编程实例并为大家讲解，我们也将展示一些 Rails 源码（略有精简和改进，一方面是为了便于讲解，省去大量无意义的细节，一方面也觉得 Rails 的实现也并非完美，也不够有趣，而且 Rails 4 为了考虑到兼容性，没有使用很多 Ruby 新版本的特性。）</div>
           </aside>
 				</section>
-
+        <section>
+          <h1>Let's start Hacking</h1>
+          <aside class="notes">
+            <div>下面，我来带领大家窥探Ruby的内心世界，领略元编程的风采吧。</div>
+          </aside>
+        </section>
 				<section>
 					<section>
 						<h1>Elegant Inquery</h1>
@@ -75,7 +110,7 @@ Rails.env.production?
             <h3>How to Implement?</h3>
             <aside class="notes">
               <div>那么如何实现这种写法呢？</div>
-              <div>当然，依次定义<code>production?</code>,<code>development?</code>, <code>test?</code>是可以的，但是有没有更加通用的办法？</div>
+              <div>当然，依次定义<code>production?</code>,<code>development?</code>, <code>test?</code>这三个方法是可以的，但是有没有更加通用的办法？</div>
             </aside>
           </section>
           <section>
@@ -161,11 +196,11 @@ class Numeric
 end
             </code></pre>
             <aside class="notes">
-              <div>这也许是一个大家都能最先想到的实现方法，在 Ruby 中，所有的类都是开放的，可以随时修改的，即使是内部类也不例外。</div>
+              <div>怎么实现呢？这也许是一个大家都能最先想到的实现方法，在 Ruby 中，所有的类都是开放的，可以随时修改的，即使是内部类也不例外。</div>
               <div>这个代码已经能实现时间计算的基本功能了，但是还存在三个问题：</div>
               <ul>
-                <li>1. 用户可以调用<code>1.ago</code>，返回前一秒的时间，虽然并没有逻辑错误，但是语意是不对的，不熟悉的人可能无法理解这个写法。</li>
-                <li>2. 用户可以调用<code>1.hour.hour</code>，不仅语义奇怪而且返回值也难以理解。</li>
+                <li>1. 我们可以调用<code>1.ago</code>，返回前一秒的时间，虽然并没有逻辑错误，但是语意是不对的，不熟悉的人可能无法理解这个写法。</li>
+                <li>2. 我们可以调用<code>1.hour.hour</code>，不仅语义奇怪而且返回值也难以理解。</li>
                 <li>3. 案例中的<code>1.day - 2.hours</code>返回 22 hours 这样的功能没有实现，在 Ruby 中，覆盖<code>inspect</code>方法可以修改这个返回值，当然你不能让所有数字以后都返回成这样的样子，即使那些数字并不表示时间。</li>
               </ul>
               <div>也许大家很容易想到在第一个例子中我们对于字符串采用的办法，先创造一个子类，然后在子类上实现我们所需要的功能。不过这个办法对数字无效，因为数字是一个基本类型，并没有设计可以传入自身值的构造方法，事实上，数字是不能像对象一样在不改变内存地址的前提下改变自身状态的。</div>
@@ -361,7 +396,7 @@ module Concern
 end
             </code></pre>
             <aside class="notes">
-              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖，当一个<code>extend</code>Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
+              <div>当 Concern 被 extend 的时候，Concern 本身的<code>extended</code>方法将被回调，这和<code>included</code>是类似的。<code>extended</code>在 extend 它的类上添加了一个类实例变量<code>@_dependencies</code>数组用以记录依赖，当一个<code>extend</code>了Concern的模块包含另一个<code>extend</code>了 Concern 的模块时，这个变量会将该模块记录为依赖。然后，当有类包含这个模块的时候，<code>append_features</code>将会被回调，所有依赖的模块都将被<code>include</code>进去。</div>
               <div><code>super</code>将调用<code>append_features</code>的默认实现，完成<code>include</code>一个模块的主要工作。</div>
               <div>如果该模块包含一个叫<code>ClassMethods</code>的子模块，就会被<code>extend</code>进去，这样里面的方法就成为了类的类方法。</div>
               <div><code>included</code>原本是 Module 本身的回调函数，Concern 覆盖了其实现，使得它还可以接受一个block，<code>included</code>记录每一个 block，当模块被包含的时候，所有 block 都将被传入类的 class_eval 执行。</div>
@@ -516,9 +551,144 @@ class Class
 end
             </code></pre>
             <aside class="notes">
-              <div>至于实现我们根据注入方式直接动态生成了一个方法，利用 Rails 的<code>alias_method_chain</code>注入。</div>
+              <div>至于实现我们根据注入方式直接动态生成了一个方法，利用 Rails 的<code>alias_method_chain</code>注入进去，这段代码非常简单，想比大家都能看懂。</div>
             </aside>
           </section>
+        </section>
+        <section>
+          <section>
+            <h1>Dependency</h1>
+            <aside class="notes">
+              <div>事实上，很多 Rails developer 也从未留意过 Rails 强大的依赖管理功能，因为完全隐藏在框架深处，对开发者完全透明（DSL 固然是元编程重要的价值体现，但是看不见的功能才是更高的境界），开发者也许只能注意到在编写 Rails 代码的时候无需写很多<code>require</code>语句以及开发环境下修改代码无需重启服务器即生效，这些福利和便捷在 Ruby 的其他开发框架中可是不一定能享受到的。
+              </div>
+              <div>Rails 的依赖管理主要包含文件的自动加载和重载，常量（在 Ruby 中，类和模块都是常量）的自动加载和发生错误时的回滚，加载出错时的 Blame 功能，以及对源代码文件修改的监控。</div>
+              <div>这里出于篇幅限制，我们只会简单讲解 Rails 的常量的自动加载功能。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>Rails convension</h3>
+            <pre><code class="ruby">
+Companies::CloudComputing::EMC &lt;=&gt; "companies/cloud_computing/emc.rb"
+            </code></pre>
+            <aside class="notes">
+              <div>为了便于讲解，先普及几个小知识。</div>
+              <div>也许大家已经听说过 Rails 约定优于配置的设计思想，我们也不是在做一个 Rails 教程，所以不细讲了，只是告诉大家，在 Rails 中，每个类和模块的命名和定义它的源码文件路径息息相关，主要是帕斯卡命名法和下划线命名法之间的转换，例如如果我们要定义一个叫<code>Companies::CloudComputing::EMC</code>的类，那我们就必须把它定义在<code>companies/cloud_computing/emc.rb</code>这个文件中，否则就会出错。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>$LOAD_PATH</h3>
+            <aside class="notes">
+              <div><code>$LOAD_PATH</code>不是 UNIX 的环境变量而是 Ruby 中的一个重要数组，当 Ruby 执行<code>require</code>方法加载一个相对路径的文件的时候，Ruby 并不简单的基于当前目录也不基于文件所在目录进行搜索，而是基于<code>$LOAD_PATH</code>数组中每一个目录路径，从上至下，逐个搜索，直到找到第一个存在的文件并加载，这个<code>$LOAD_PATH</code>的内容可以由我们任意添加或者删除。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>autoload_paths</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+  paths.add "app",                 eager_load: true, glob: "*"
+  paths.add "app/assets",          glob: "*"
+  paths.add "app/controllers",     eager_load: true
+  paths.add "app/helpers",         eager_load: true
+  paths.add "app/models",          eager_load: true
+  paths.add "app/mailers",         eager_load: true
+  paths.add "app/views"
+
+  paths.add "app/controllers/concerns", eager_load: true
+  paths.add "app/models/concerns",      eager_load: true
+
+  paths.add "lib",                 load_path: true
+  paths.add "lib/assets",          glob: "*"
+  paths.add "lib/tasks",           glob: "**/*.rake"
+
+  paths.add "config"
+  paths.add "config/environments", glob: "#{Rails.env}.rb"
+  paths.add "config/initializers", glob: "**/*.rb"
+  paths.add "config/locales",      glob: "*.{rb,yml}"
+  paths.add "config/routes.rb"
+
+  paths.add "db"
+  paths.add "db/migrate"
+  paths.add "db/seeds.rb"
+
+  paths.add "vendor",              load_path: true
+  paths.add "vendor/assets",       glob: "*"
+            </code></pre>
+            <aside class="notes">
+              Rails 参照了 Ruby 的<code>$LOAD_PATH</code>设计了自己的<code>autoload_paths</code>，Slides 上展示了 Rails 内部对于目录的定义，其中我们可以看到部分目录被标示了<code>eager_load: true</code>，这表示这些目录中的所有 Ruby 文件在生产环境服务器启动的时候全部加载（也可以配成懒加载），在开发环境下则是自动懒加载，但是在开发者看起来就像已经全部加载了一样，全部加载没啥技术含量，而懒加载才是比较有意思的部分，也是我们主要讲解的部分。
+            </aside>
+          </section>
+          <section>
+            <h3>Constant lookup</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+class SuperClass
+  FIND_ME = "Found in SuperClass"
+end
+
+module ParentLexicalScope
+  FIND_ME = "Found in ParentLexicalScope"
+
+  class SubClass &lt; SuperClass
+    p FIND_ME
+  end
+end
+            </code></pre>
+            <aside class="notes">
+              <div>再普及下 Ruby 搜索常量的方法，Ruby 搜索常量是从其出现的位置（称为Scope）出发，沿着Scope从内向外逐个搜索，如果都找不到，则回到原点，沿着父类从下向上搜索，如果还是找不到，调用其出现位置所在的常量（可能是类也可能是模块）的const_missing方法。</div>
+              <div>在上面的例子中，我们在<code>SubClass</code>中遭遇到<code>FIND_ME</code>这个常量，Ruby 首先会搜索其所在位置<code>SubClass</code>，检测<code>SubClass::FIND_ME</code>的存在性，找不到的话，搜索外部的<code>ParentLexicalScope</code>，检测<code>ParentLexicalScope::FIND_ME</code>的存在性，如果还是找不到，搜索 TOPLEVEL，也就是<code>::FIND_ME</code>，还是找不到的话，搜索父类<code>SuperClass</code>，如果依然找不到，调用<code>SubClass</code>的<code>const_missing</code>方法。</div>
+              <div>对于被明确声明了相对路径或者绝对路径的常量，例如<code>Companies::CloudComputing::EMC</code>，则先搜索<code>Companies</code>，然后在<code>Companies</code>里搜索<code>CloudComputing</code>（这种情况下如果找不到就无需尝试，直接报错），然后在<code>Companies::CloudComputing</code>里搜索<code>EMC</code>。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>const_missing</h3>
+            <pre><code class="ruby">
+def const_missing(const_name)
+  Dependencies.load_missing_constant(self, const_name)
+end
+            </code></pre>
+            <aside class="notes">
+              <div>所有被 Rails 标示成<code>eager_load</code>的文件都有个共同特点，都只是定义类或者模块，当类或模块找不到的时候，就可以启用懒加载去加载其源码文件。为此，Rails 重写了模块的<code>const_missing</code>方法（类继承了模块的方法），调用了<code>Dependency</code>的<code>load_missing_constant</code>方法。</div>
+            </aside>
+          </section>
+          <section>
+            <h3>load_missing_constant</h3>
+            <pre><code class="ruby" style="max-height: inherit;">
+def load_missing_constant(from_mod, const_name)
+  qualified_name = qualified_name_for from_mod, const_name
+  path_suffix = qualified_name.underscore
+
+  file_path = search_for_file path_suffix
+
+  if file_path
+    expanded = File.expand_path(file_path).sub(/\.rb\z/, '')
+    require_or_load(expanded, qualified_name)
+    raise LoadError, "Unable to autoload constant #{qualified_name}, expected #{file_path} to define it" unless from_mod.const_defined?(const_name, false)
+    return from_mod.const_get(const_name)
+  elsif mod = autoload_module!(from_mod, const_name, qualified_name, path_suffix)
+    return mod
+  elsif (parent = from_mod.parent) &amp;&amp; parent != from_mod &amp;&amp;
+        ! from_mod.parents.any? { |p| p.const_defined?(const_name, false) }
+    begin
+      return parent.const_missing(const_name)
+    rescue NameError =&gt; e
+      raise unless e.missing_name? qualified_name_for(parent, const_name)
+    end
+  end
+
+  raise NameError, "uninitialized constant #{qualified_name}"
+end
+            </code></pre>
+            <aside class="notes">
+              <div>这个方法就是加载<code>常量</code>的最主要方法了，首先<code>from_mod</code>是<code>const_missing</code>发生时的所在类或者模块，而<code>const_name</code>就是需要加载的常量的名字。</div>
+              <div>一开始将当前模块或类的名字和所需要加载的常量的名字合并，中间用双冒号连接，猜测这可能是该常量的绝对路径，调用<code>underscore</code>方法将帕斯卡命名转换成 Rails 约定的下划线命名后，猜测这可能是定义该常量的文件路径，然后调用<code>search_for_file</code>，<code>search_for_file</code>遍历所有前面被标示成<code>eager_load</code>的目录，就像 Ruby 搜索<code>$LOAD_PATH</code>一样，如果找到的话，调用<code>require_or_load</code>，在 Ruby 中，<code>require</code>表示一个文件只加载一次，<code>load</code>允许文件反复被加载。<code>require_or_load</code>是 Rails 定义的函数，如果当前是开发环境下，就调用<code>load</code>使文件一旦发生修改就可以被再次加载，如果当前是生产环境就调用<code>require</code>阻止文件被反复加载。如果加载文件后依然找不到该常量，则认为这个文件没有符合 Rails 约定，报错。否则返回该常量即可。如果找不到文件，有可能是个目录，将再次搜索，如果能找到，就创建一个空模块返回回去，这种情况通常是为了进一步搜索目录下的源码文件。如果依然找不到，并且条件判断认为<code>from_mod</code>的外层 scope 可能包含所要找的常量，则递归调用外层 Scope 的同名方法。否则报错。</div>
+            </aside>
+          </section>
+        </section>
+        <section>
+          <blockquote>
+             “There’s no such thing as metaprogramming. It’s just programming all the way through.”
+          </blockquote>
+          <aside class="notes">
+            <div>元编程初看之下总是令人惊叹不已，再看看就会陷入迷茫，反复思索反复探索才能豁然开朗，世界上其实没有什么元编程，有的只是编程而已。</pre>
+          </aside>
         </section>
         <section>
             <h1>Thanks!</h1>
