@@ -524,9 +524,10 @@ end
             <pre><code class="ruby" style="max-height: inherit;">
 class Class
   def hook hook_method
-    match = hook_method.to_s.match(/^(before|around|after)_(.+)$/)
-    raise 'Hook method must start with before, around or after' unless match
-    type, method_name = match[1].to_sym, match[2]
+    unless hook_method.to_s =~ /^(before|around|after)_(.+)$/
+      raise 'Hook method must start with before, around or after'
+    end
+    type, method_name = $1.to_sym, $2
     feature = "#{type}_#{SecureRandom.hex 8}__"
 
     alias_method_chain method_name, feature do |method_name, punctuation|
